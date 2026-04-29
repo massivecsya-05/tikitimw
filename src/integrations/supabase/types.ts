@@ -14,16 +14,254 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          banner_url: string | null
+          category: Database["public"]["Enums"]["event_category"]
+          city: string
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at: string
+          vendor_id: string
+          venue: string
+        }
+        Insert: {
+          banner_url?: string | null
+          category?: Database["public"]["Enums"]["event_category"]
+          city: string
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          starts_at: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at?: string
+          vendor_id: string
+          venue: string
+        }
+        Update: {
+          banner_url?: string | null
+          category?: Database["public"]["Enums"]["event_category"]
+          city?: string
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title?: string
+          updated_at?: string
+          vendor_id?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          checked_in: boolean
+          created_at: string
+          event_id: string
+          id: string
+          order_id: string
+          qr_code: string
+          quantity: number
+          tier_id: string
+          unit_price_mwk: number
+        }
+        Insert: {
+          checked_in?: boolean
+          created_at?: string
+          event_id: string
+          id?: string
+          order_id: string
+          qr_code?: string
+          quantity: number
+          tier_id: string
+          unit_price_mwk: number
+        }
+        Update: {
+          checked_in?: boolean
+          created_at?: string
+          event_id?: string
+          id?: string
+          order_id?: string
+          qr_code?: string
+          quantity?: number
+          tier_id?: string
+          unit_price_mwk?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          status: Database["public"]["Enums"]["order_status"]
+          total_mwk: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total_mwk: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total_mwk?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ticket_tiers: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          name: string
+          price_mwk: number
+          quantity: number
+          sold: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          name: string
+          price_mwk: number
+          quantity: number
+          sold?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          name?: string
+          price_mwk?: number
+          quantity?: number
+          sold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_tiers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "vendor" | "customer"
+      event_category:
+        | "concert"
+        | "sports"
+        | "conference"
+        | "cultural"
+        | "festival"
+        | "theatre"
+        | "other"
+      event_status: "draft" | "published" | "cancelled" | "completed"
+      order_status: "pending" | "paid" | "failed" | "refunded"
+      payment_method: "airtel_money" | "tnm_mpamba" | "card" | "bank_transfer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +388,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "vendor", "customer"],
+      event_category: [
+        "concert",
+        "sports",
+        "conference",
+        "cultural",
+        "festival",
+        "theatre",
+        "other",
+      ],
+      event_status: ["draft", "published", "cancelled", "completed"],
+      order_status: ["pending", "paid", "failed", "refunded"],
+      payment_method: ["airtel_money", "tnm_mpamba", "card", "bank_transfer"],
+    },
   },
 } as const
