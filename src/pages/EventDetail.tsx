@@ -53,10 +53,12 @@ const EventDetail = () => {
     if (!user) return;
     setSubmitting(true);
     try {
+      // 1. Create a PENDING order + items (status defaults to 'pending')
       const { data: order, error } = await supabase.from("orders").insert({
-        customer_id: user.id, total_mwk: total, status: "paid", payment_method: pay as any,
+        customer_id: user.id, total_mwk: total, status: "pending", payment_method: pay as any,
       }).select().single();
       if (error || !order) throw error;
+
       const items = tiers.filter(t => (qty[t.id] ?? 0) > 0).flatMap(t =>
         Array.from({ length: qty[t.id] }).map(() => ({
           order_id: order.id, tier_id: t.id, event_id: event.id, quantity: 1, unit_price_mwk: t.price_mwk,
@@ -64,12 +66,24 @@ const EventDetail = () => {
       );
       const { error: e2 } = await supabase.from("order_items").insert(items);
       if (e2) throw e2;
-      toast.success("🎉 Tickets booked! Check your dashboard.");
-      setCheckoutOpen(false);
-      nav("/dashboard");
+
+      // 2. Initiate PayChangu sandbox session and redirect
+      const returnUrl = `${window.location.origin}/payment/callback?order_id=${order.id}`;
+      const { data: pay, error: payErr } = await supabase.functions.invoke("initiate-payment", {
+        body: {
+          order_id: order.id,
+          customer_email: user.email,
+          return_url: returnUrl,
+        },
+      });
+      if (payErr) throw payErr;
+      if (!pay?.checkout_url) throw new Error("No checkout URL returned");
+
+      window.location.href = pay.checkout_url;
     } catch (e: any) {
       toast.error(e.message ?? "Checkout failed");
-    } finally { setSubmitting(false); }
+      setSubmitting(false);
+    }
   };
 
   return (
