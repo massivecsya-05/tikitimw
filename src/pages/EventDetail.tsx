@@ -69,7 +69,7 @@ const EventDetail = () => {
 
       // 2. Initiate PayChangu sandbox session and redirect
       const returnUrl = `${window.location.origin}/payment/callback?order_id=${order.id}`;
-      const { data: pay, error: payErr } = await supabase.functions.invoke("initiate-payment", {
+      const { data: payRes, error: payErr } = await supabase.functions.invoke("initiate-payment", {
         body: {
           order_id: order.id,
           customer_email: user.email,
@@ -77,7 +77,7 @@ const EventDetail = () => {
         },
       });
       if (payErr) throw payErr;
-      if (!pay?.checkout_url) throw new Error("No checkout URL returned");
+      if (!payRes?.checkout_url) throw new Error("No checkout URL returned");
 
       window.location.href = pay.checkout_url;
     } catch (e: any) {
