@@ -62,9 +62,45 @@ export type Database = {
         }
         Relationships: []
       }
+      order_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          order_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_audit_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           checked_in: boolean
+          checked_in_at: string | null
           created_at: string
           event_id: string
           id: string
@@ -76,6 +112,7 @@ export type Database = {
         }
         Insert: {
           checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
           event_id: string
           id?: string
@@ -87,6 +124,7 @@ export type Database = {
         }
         Update: {
           checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
           event_id?: string
           id?: string
@@ -123,25 +161,40 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_email: string | null
           customer_id: string
+          email_sent_at: string | null
           id: string
+          paid_at: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_provider: string | null
+          payment_ref: string | null
           status: Database["public"]["Enums"]["order_status"]
           total_mwk: number
         }
         Insert: {
           created_at?: string
+          customer_email?: string | null
           customer_id: string
+          email_sent_at?: string | null
           id?: string
+          paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_provider?: string | null
+          payment_ref?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total_mwk: number
         }
         Update: {
           created_at?: string
+          customer_email?: string | null
           customer_id?: string
+          email_sent_at?: string | null
           id?: string
+          paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_provider?: string | null
+          payment_ref?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total_mwk?: number
         }
@@ -241,6 +294,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_in: { Args: { p_order_item_id: string }; Returns: Json }
+      confirm_payment: {
+        Args: {
+          p_order_id: string
+          p_provider?: string
+          p_provider_ref: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
