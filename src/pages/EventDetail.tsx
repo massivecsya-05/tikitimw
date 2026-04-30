@@ -77,9 +77,10 @@ const EventDetail = () => {
         },
       });
       if (payErr) throw payErr;
-      if (!payRes?.checkout_url) throw new Error("No checkout URL returned");
+      const payData = payRes as { checkout_url?: string };
+      if (!payData?.checkout_url) throw new Error("No checkout URL returned");
 
-      window.location.href = pay.checkout_url;
+      window.location.href = payData.checkout_url;
     } catch (e: any) {
       toast.error(e.message ?? "Checkout failed");
       setSubmitting(false);
