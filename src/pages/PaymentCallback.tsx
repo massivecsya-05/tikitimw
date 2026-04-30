@@ -26,7 +26,7 @@ const PaymentCallback = () => {
       if (cancelled) return;
       if (error || !data) { setStatus("failed"); return; }
       if (data.status === "paid") { setStatus("paid"); return; }
-      if (data.status === "cancelled" || data.status === "refunded") {
+      if (data.status === "failed" || data.status === "refunded") {
         setStatus("failed"); return;
       }
       // Still pending — try again up to ~30 seconds total
