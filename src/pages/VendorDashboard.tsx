@@ -142,6 +142,7 @@ const VendorDashboard = () => {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats */}
