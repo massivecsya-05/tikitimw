@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, formatDate, formatMWK } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode } from "lucide-react";
 
 const VendorDashboard = () => {
   const { user, roles, loading } = useAuth();
