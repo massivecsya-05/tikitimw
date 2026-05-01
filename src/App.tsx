@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import BecomeVendor from "./pages/BecomeVendor";
 import Profile from "./pages/Profile";
 import PaymentCallback from "./pages/PaymentCallback";
+import Scanner from "./pages/Scanner";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/become-vendor" element={<BecomeVendor />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/payment/callback" element={<PaymentCallback />} />
+            <Route path="/scanner" element={<Scanner />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
