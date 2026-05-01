@@ -99,8 +99,10 @@ const VendorDashboard = () => {
             <div className="text-xs uppercase tracking-widest text-primary font-bold mb-2">Vendor</div>
             <h1 className="font-display font-extrabold text-4xl md:text-5xl">Your event hub</h1>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button variant="hero" size="lg"><Plus/> Create event</Button></DialogTrigger>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="lg"><Link to="/scanner"><QrCode/> Scanner</Link></Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild><Button variant="hero" size="lg"><Plus/> Create event</Button></DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display text-2xl">Create new event</DialogTitle></DialogHeader>
               <form onSubmit={create} className="space-y-4">
