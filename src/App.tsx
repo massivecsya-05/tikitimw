@@ -37,6 +37,7 @@ const App = () => (
             <Route path="/become-vendor" element={<BecomeVendor />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/payment/callback" element={<PaymentCallback />} />
+            <Route path="/scanner" element={<Scanner />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
