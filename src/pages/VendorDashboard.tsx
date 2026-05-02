@@ -21,6 +21,15 @@ const VendorDashboard = () => {
   const [open, setOpen] = useState(false);
   const [tiers, setTiers] = useState([{ name: "Regular", price: "", quantity: "" }]);
   const [creating, setCreating] = useState(false);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+
+  const onBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    setBannerFile(f);
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerPreview(f ? URL.createObjectURL(f) : null);
+  };
 
   const refresh = async () => {
     if (!user) return;
@@ -50,6 +59,15 @@ const VendorDashboard = () => {
     const fd = new FormData(e.currentTarget);
     setCreating(true);
     try {
+      let banner_url: string | null = null;
+      if (bannerFile) {
+        if (bannerFile.size > 5 * 1024 * 1024) throw new Error("Banner must be 5MB or smaller");
+        const ext = bannerFile.name.split(".").pop() || "jpg";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("event-banners").upload(path, bannerFile, { contentType: bannerFile.type, upsert: false });
+        if (upErr) throw upErr;
+        banner_url = supabase.storage.from("event-banners").getPublicUrl(path).data.publicUrl;
+      }
       const { data: ev, error } = await supabase.from("events").insert({
         vendor_id: user.id,
         title: fd.get("title") as string,
@@ -58,7 +76,7 @@ const VendorDashboard = () => {
         venue: fd.get("venue") as string,
         city: fd.get("city") as string,
         starts_at: new Date(fd.get("starts_at") as string).toISOString(),
-        banner_url: (fd.get("banner_url") as string) || null,
+        banner_url,
         status: "published",
       }).select().single();
       if (error || !ev) throw error;
@@ -72,6 +90,9 @@ const VendorDashboard = () => {
       toast.success("Event published! 🎉");
       setOpen(false);
       setTiers([{ name: "Regular", price: "", quantity: "" }]);
+      setBannerFile(null);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+      setBannerPreview(null);
       refresh();
     } catch (err: any) { toast.error(err.message); }
     finally { setCreating(false); }
@@ -121,7 +142,18 @@ const VendorDashboard = () => {
                   <div><Label>Venue *</Label><Input name="venue" required /></div>
                   <div><Label>City *</Label><Input name="city" required defaultValue="Lilongwe" /></div>
                 </div>
-                <div><Label>Banner image URL</Label><Input name="banner_url" placeholder="https://..." /></div>
+                <div>
+                  <Label>Banner image</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    <label className="flex-1 cursor-pointer border-2 border-dashed border-border rounded-xl px-4 py-3 text-sm text-muted-foreground hover:border-primary/50 hover:bg-muted/30 transition-smooth">
+                      {bannerFile ? bannerFile.name : "Click to upload (JPG/PNG, max 5MB)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={onBannerChange} />
+                    </label>
+                    {bannerPreview && (
+                      <img src={bannerPreview} alt="Banner preview" className="w-20 h-20 object-cover rounded-xl border border-border" />
+                    )}
+                  </div>
+                </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-2"><Label>Ticket tiers</Label>
