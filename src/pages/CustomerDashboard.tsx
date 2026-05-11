@@ -6,11 +6,13 @@ import { PageShell } from "@/components/PageShell";
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
 import { Ticket, Calendar, MapPin, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TicketQRDialog } from "@/components/TicketQRDialog";
 
 const CustomerDashboard = () => {
   const { user, loading } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
+  const [activeTicket, setActiveTicket] = useState<any | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -63,9 +65,15 @@ const CustomerDashboard = () => {
                     <div className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5"/>{it.events && formatDate(it.events.starts_at)} · {it.events && formatTime(it.events.starts_at)}</div>
                     <div className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5"/>{it.events?.venue}, {it.events?.city}</div>
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border gap-2">
                     <div className="font-bold text-primary">{formatMWK(it.unit_price_mwk)}</div>
-                    <div className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded-md bg-muted"><QrCode className="w-3 h-3"/>{it.qr_code.slice(0, 10)}…</div>
+                    <button
+                      onClick={() => setActiveTicket(it)}
+                      className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded-md bg-muted hover:bg-primary hover:text-primary-foreground transition-smooth cursor-pointer"
+                      aria-label="View QR code"
+                    >
+                      <QrCode className="w-3 h-3"/>{it.qr_code.slice(0, 10)}…
+                    </button>
                   </div>
                 </div>
               </div>
@@ -73,6 +81,18 @@ const CustomerDashboard = () => {
           </div>
         )}
       </div>
+
+      <TicketQRDialog
+        open={!!activeTicket}
+        onOpenChange={(v) => !v && setActiveTicket(null)}
+        qrCode={activeTicket?.qr_code ?? ""}
+        eventTitle={activeTicket?.events?.title}
+        tierName={undefined}
+        startsAt={activeTicket?.events?.starts_at}
+        venue={activeTicket?.events?.venue}
+        city={activeTicket?.events?.city}
+        checkedIn={activeTicket?.checked_in}
+      />
     </PageShell>
   );
 };
