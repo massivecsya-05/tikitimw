@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, XCircle, AlertTriangle, Camera, CameraOff } from "lucide-react";
 import { toast } from "sonner";
+import { TicketQRDialog } from "@/components/TicketQRDialog";
 
 type Result =
   | { kind: "ok"; event_title: string; tier_name: string; attendee_name: string | null }
@@ -24,6 +25,7 @@ const Scanner = () => {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [manual, setManual] = useState("");
+  const [activeQr, setActiveQr] = useState<{ code: string; title?: string; tier?: string; checkedIn?: boolean } | null>(null);
 
   const stop = () => {
     controlsRef.current?.stop();
@@ -71,6 +73,7 @@ const Scanner = () => {
       if (r.status === "checked_in") {
         setResult({ kind: "ok", event_title: r.event_title, tier_name: r.tier_name, attendee_name: r.attendee_name });
         toast.success(`✓ ${r.attendee_name ?? "Guest"} — ${r.tier_name}`);
+        setActiveQr({ code, title: r.event_title, tier: r.tier_name, checkedIn: true });
       } else if (r.status === "already_checked_in") {
         setResult({
           kind: "already",
@@ -79,6 +82,7 @@ const Scanner = () => {
           attendee_name: r.attendee_name,
           checked_in_at: r.checked_in_at,
         });
+        setActiveQr({ code, title: r.event_title, tier: r.tier_name, checkedIn: true });
       } else if (r.status === "unauthorized") {
         setResult({ kind: "unauthorized" });
       } else {
@@ -208,6 +212,15 @@ const Scanner = () => {
           </div>
         )}
       </div>
+
+      <TicketQRDialog
+        open={!!activeQr}
+        onOpenChange={(v) => !v && setActiveQr(null)}
+        qrCode={activeQr?.code ?? ""}
+        eventTitle={activeQr?.title}
+        tierName={activeQr?.tier}
+        checkedIn={activeQr?.checkedIn}
+      />
     </PageShell>
   );
 };
