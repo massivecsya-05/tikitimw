@@ -282,6 +282,7 @@ const AdminDashboard = () => {
                     <thead className="bg-slate-950/60 text-left text-slate-400 text-xs uppercase tracking-widest">
                       <tr>
                         <th className="p-4">Name</th>
+                        <th className="p-4">Email</th>
                         <th className="p-4">Phone</th>
                         <th className="p-4">Roles</th>
                         <th className="p-4">Joined</th>
@@ -292,6 +293,7 @@ const AdminDashboard = () => {
                       {filteredUsers.map((u) => (
                         <tr key={u.id} className="border-t border-slate-800">
                           <td className="p-4 font-semibold text-slate-100">{u.full_name ?? "—"}</td>
+                          <td className="p-4 text-slate-300 break-all">{u.email || "—"}</td>
                           <td className="p-4 text-slate-400">{u.phone ?? "—"}</td>
                           <td className="p-4">
                             <div className="flex gap-1 flex-wrap">
@@ -322,6 +324,17 @@ const AdminDashboard = () => {
                               <Button size="sm" variant="outline" className="border-violet-700/50 bg-violet-600/10 hover:bg-violet-600/20 text-violet-300" onClick={() => grantRole(u.id, "admin")}>+ Admin</Button>
                             ) : (
                               <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800" onClick={() => revokeRole(u.id, "admin")}>– Admin</Button>
+                            )}
+                            {u.id !== user.id && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                                onClick={() => deleteUser(u.id, u.email || u.full_name || u.id.slice(0, 8))}
+                                title="Delete user"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             )}
                           </td>
                         </tr>
