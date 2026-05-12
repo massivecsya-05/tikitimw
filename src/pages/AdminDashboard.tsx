@@ -90,6 +90,22 @@ const AdminDashboard = () => {
     toast.success(`Revoked ${role}`); load();
   };
 
+  const toggleEventStatus = async (ev: any) => {
+    const next = ev.status === "published" ? "draft" : "published";
+    const { error } = await supabase.from("events").update({ status: next }).eq("id", ev.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Event ${next === "published" ? "published" : "unpublished"}`);
+    load();
+  };
+
+  const deleteEvent = async (id: string) => {
+    if (!confirm("Delete this event? This will also remove its tickets.")) return;
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Event deleted");
+    load();
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       !search ||
