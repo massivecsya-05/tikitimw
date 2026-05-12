@@ -37,6 +37,7 @@ const AdminDashboard = () => {
       { data: rolesData },
       { data: orders },
       { data: auditData },
+      emailsRes,
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
@@ -44,11 +45,13 @@ const AdminDashboard = () => {
       supabase.from("user_roles").select("user_id,role"),
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("order_audit_log").select("*").order("created_at", { ascending: false }).limit(40),
+      supabase.functions.invoke("admin-users", { body: { action: "list" } }),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
     rolesData?.forEach((r) => { (rolesByUser[r.user_id] ||= []).push(r.role); });
-    const enrichedUsers = (profiles ?? []).map((p) => ({ ...p, roles: rolesByUser[p.id] ?? [] }));
+    const emails: Record<string, string> = (emailsRes as any)?.data?.emails ?? {};
+    const enrichedUsers = (profiles ?? []).map((p) => ({ ...p, roles: rolesByUser[p.id] ?? [], email: emails[p.id] ?? "" }));
     setUsers(enrichedUsers);
     setEvents(ev ?? []);
     setAudit(auditData ?? []);
