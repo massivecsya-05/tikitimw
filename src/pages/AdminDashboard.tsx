@@ -357,6 +357,22 @@ const AdminDashboard = () => {
                     <Button asChild size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800">
                       <Link to={`/events/${ev.id}`}>View</Link>
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
+                      onClick={() => toggleEventStatus(ev)}
+                    >
+                      {ev.status === "published" ? <><EyeOff className="w-4 h-4"/>Unpublish</> : <><Eye className="w-4 h-4"/>Publish</>}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                      onClick={() => deleteEvent(ev.id)}
+                    >
+                      <Trash2 className="w-4 h-4"/>
+                    </Button>
                   </div>
                 ))}
               </div>
