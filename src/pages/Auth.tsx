@@ -36,6 +36,18 @@ const Auth = () => {
     nav(redirect);
   };
 
+  const forgotPassword = async () => {
+    const email = window.prompt("Enter the email for your account:");
+    if (!email) return;
+    const ev = emailSchema.safeParse(email.trim());
+    if (!ev.success) return toast.error(ev.error.errors[0].message);
+    const { error } = await supabase.auth.resetPasswordForEmail(ev.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Password reset link sent. Check your email.");
+  };
+
   const signUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
