@@ -7,6 +7,7 @@ import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
   AlertCircle, TrendingUp, Search, Crown, Store, UserCheck, ArrowUpRight,
+  Eye, EyeOff, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +89,22 @@ const AdminDashboard = () => {
   const revokeRole = async (uid: string, role: "vendor" | "admin") => {
     await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", role);
     toast.success(`Revoked ${role}`); load();
+  };
+
+  const toggleEventStatus = async (ev: any) => {
+    const next = ev.status === "published" ? "draft" : "published";
+    const { error } = await supabase.from("events").update({ status: next }).eq("id", ev.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Event ${next === "published" ? "published" : "unpublished"}`);
+    load();
+  };
+
+  const deleteEvent = async (id: string) => {
+    if (!confirm("Delete this event? This will also remove its tickets.")) return;
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Event deleted");
+    load();
   };
 
   const filteredUsers = users.filter(
@@ -339,6 +356,22 @@ const AdminDashboard = () => {
                     </span>
                     <Button asChild size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800">
                       <Link to={`/events/${ev.id}`}>View</Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
+                      onClick={() => toggleEventStatus(ev)}
+                    >
+                      {ev.status === "published" ? <><EyeOff className="w-4 h-4"/>Unpublish</> : <><Eye className="w-4 h-4"/>Publish</>}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                      onClick={() => deleteEvent(ev.id)}
+                    >
+                      <Trash2 className="w-4 h-4"/>
                     </Button>
                   </div>
                 ))}
