@@ -110,10 +110,19 @@ const AdminDashboard = () => {
     load();
   };
 
+  const deleteUser = async (uid: string, label: string) => {
+    if (!confirm(`Permanently delete user ${label}? This removes their account, profile, orders and tickets.`)) return;
+    const { data, error } = await supabase.functions.invoke("admin-users", { body: { action: "delete", user_id: uid } });
+    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error!.message);
+    toast.success("User deleted");
+    load();
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       !search ||
       (u.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (u.phone ?? "").includes(search)
   );
 
