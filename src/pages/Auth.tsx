@@ -100,7 +100,15 @@ const Auth = () => {
               <p className="text-muted-foreground mb-6">Sign in to access your tickets</p>
               <form onSubmit={signIn} className="space-y-4">
                 <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
-                <div><Label>Password</Label><Input name="password" type="password" required className="h-11" /></div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label>Password</Label>
+                    <button type="button" onClick={forgotPassword} className="text-xs text-primary hover:underline">
+                      Forgot password?
+                    </button>
+                  </div>
+                  <Input name="password" type="password" required className="h-11" />
+                </div>
                 <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : "Sign in"}</Button>
               </form>
             </TabsContent>
