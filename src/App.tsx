@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import PaymentCallback from "./pages/PaymentCallback";
 import Scanner from "./pages/Scanner";
 import ResetPassword from "./pages/ResetPassword";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
