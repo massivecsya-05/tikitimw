@@ -36,17 +36,7 @@ const Auth = () => {
     nav(redirect);
   };
 
-  const forgotPassword = async () => {
-    const email = window.prompt("Enter the email for your account:");
-    if (!email) return;
-    const ev = emailSchema.safeParse(email.trim());
-    if (!ev.success) return toast.error(ev.error.errors[0].message);
-    const { error } = await supabase.auth.resetPasswordForEmail(ev.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Password reset link sent. Check your email.");
-  };
+  // forgot password is handled on the /forgot-password page
 
   const signUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -101,13 +91,13 @@ const Auth = () => {
               <form onSubmit={signIn} className="space-y-4">
                 <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
                 <div>
-                  <div className="flex items-center justify-between">
-                    <Label>Password</Label>
-                    <button type="button" onClick={forgotPassword} className="text-xs text-primary hover:underline">
-                      Forgot password?
-                    </button>
-                  </div>
+                  <Label>Password</Label>
                   <Input name="password" type="password" required className="h-11" />
+                  <div className="flex justify-end mt-1">
+                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
                 <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : "Sign in"}</Button>
               </form>
