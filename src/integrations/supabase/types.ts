@@ -200,6 +200,27 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          fee_flat_mwk: number
+          fee_percent: number
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          fee_flat_mwk?: number
+          fee_percent?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          fee_flat_mwk?: number
+          fee_percent?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -289,6 +310,54 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_payouts: {
+        Row: {
+          created_at: string
+          fee_flat_snapshot: number
+          fee_mwk: number
+          fee_percent_snapshot: number
+          gross_mwk: number
+          id: string
+          net_mwk: number
+          notes: string | null
+          order_id: string
+          paid_at: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+          tickets_count: number
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          fee_flat_snapshot: number
+          fee_mwk: number
+          fee_percent_snapshot: number
+          gross_mwk: number
+          id?: string
+          net_mwk: number
+          notes?: string | null
+          order_id: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          tickets_count: number
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          fee_flat_snapshot?: number
+          fee_mwk?: number
+          fee_percent_snapshot?: number
+          gross_mwk?: number
+          id?: string
+          net_mwk?: number
+          notes?: string | null
+          order_id?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          tickets_count?: number
+          vendor_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -329,6 +398,7 @@ export type Database = {
       event_status: "draft" | "published" | "cancelled" | "completed"
       order_status: "pending" | "paid" | "failed" | "refunded"
       payment_method: "airtel_money" | "tnm_mpamba" | "card" | "bank_transfer"
+      payout_status: "pending" | "paid" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -469,6 +539,7 @@ export const Constants = {
       event_status: ["draft", "published", "cancelled", "completed"],
       order_status: ["pending", "paid", "failed", "refunded"],
       payment_method: ["airtel_money", "tnm_mpamba", "card", "bank_transfer"],
+      payout_status: ["pending", "paid", "cancelled"],
     },
   },
 } as const
