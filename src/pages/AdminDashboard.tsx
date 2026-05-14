@@ -127,7 +127,33 @@ const AdminDashboard = () => {
     load();
   };
 
-  const filteredUsers = users.filter(
+  const resendEmail = async (orderId: string) => {
+    const t = toast.loading("Sending ticket email…");
+    const { data, error } = await supabase.functions.invoke("send-ticket-email", { body: { order_id: orderId, force: true } });
+    toast.dismiss(t);
+    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error!.message);
+    if ((data as any)?.skipped) return toast.message((data as any).skipped);
+    toast.success("Ticket email sent");
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    const { error } = await supabase.from("platform_settings").update({
+      fee_percent: settingsRow.fee_percent,
+      fee_flat_mwk: settingsRow.fee_flat_mwk,
+      updated_at: new Date().toISOString(),
+    }).eq("id", true);
+    setSavingSettings(false);
+    if (error) return toast.error(error.message);
+    toast.success("Fee settings saved");
+  };
+
+  const markPayoutPaid = async (id: string) => {
+    const { error } = await supabase.from("vendor_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Payout marked as paid");
+    load();
+  };
     (u) =>
       !search ||
       (u.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
