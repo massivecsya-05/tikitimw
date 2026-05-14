@@ -41,6 +41,8 @@ const AdminDashboard = () => {
       { data: orders },
       { data: auditData },
       emailsRes,
+      { data: payoutsData },
+      { data: settingsData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
@@ -49,6 +51,8 @@ const AdminDashboard = () => {
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("order_audit_log").select("*").order("created_at", { ascending: false }).limit(40),
       supabase.functions.invoke("admin-users", { body: { action: "list" } }),
+      supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
@@ -59,6 +63,8 @@ const AdminDashboard = () => {
     setEvents(ev ?? []);
     setAudit(auditData ?? []);
     setRecentOrders(orders?.slice(0, 8) ?? []);
+    setPayouts(payoutsData ?? []);
+    if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
     setStats({
       users: profiles?.length ?? 0,
