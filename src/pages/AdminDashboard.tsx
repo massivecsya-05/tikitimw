@@ -200,6 +200,8 @@ const AdminDashboard = () => {
               {navItem("overview", "Overview", Activity)}
               {navItem("users", "Users & roles", Users)}
               {navItem("events", "All events", CalendarDays)}
+              {navItem("payouts", "Vendor payouts", Wallet)}
+              {navItem("settings", "Platform fees", SettingsIcon)}
               {navItem("audit", "Audit log", AlertCircle)}
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 px-2">
