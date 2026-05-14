@@ -449,6 +449,92 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {/* PAYOUTS */}
+            {tab === "payouts" && (
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                  <div className="font-display font-bold">Vendor payouts</div>
+                  <div className="text-xs text-slate-500">{payouts.length} records</div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-950/60 text-left text-slate-400 text-xs uppercase tracking-widest">
+                      <tr>
+                        <th className="p-4">Vendor</th>
+                        <th className="p-4">Order</th>
+                        <th className="p-4">Tickets</th>
+                        <th className="p-4">Gross</th>
+                        <th className="p-4">Fee</th>
+                        <th className="p-4">Net to vendor</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payouts.length === 0 && (
+                        <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-500">No payouts yet. They are created automatically when an order is paid.</td></tr>
+                      )}
+                      {payouts.map((p) => {
+                        const vendorLabel = users.find((u) => u.id === p.vendor_id);
+                        return (
+                          <tr key={p.id} className="border-t border-slate-800">
+                            <td className="p-4 text-slate-200">{vendorLabel?.full_name ?? vendorLabel?.email ?? p.vendor_id.slice(0, 8)}</td>
+                            <td className="p-4 font-mono text-xs text-slate-400">{p.order_id.slice(0, 8)}</td>
+                            <td className="p-4">{p.tickets_count}</td>
+                            <td className="p-4">{formatMWK(p.gross_mwk)}</td>
+                            <td className="p-4 text-amber-400">{formatMWK(p.fee_mwk)}</td>
+                            <td className="p-4 font-display font-bold text-emerald-400">{formatMWK(p.net_mwk)}</td>
+                            <td className="p-4">
+                              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${p.status === "paid" ? "bg-emerald-500/15 text-emerald-400" : p.status === "cancelled" ? "bg-slate-700/40 text-slate-400" : "bg-amber-500/15 text-amber-400"}`}>{p.status}</span>
+                            </td>
+                            <td className="p-4 text-right">
+                              {p.status === "pending" && (
+                                <Button size="sm" variant="outline" className="border-emerald-700/50 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300" onClick={() => markPayoutPaid(p.id)}>Mark paid</Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SETTINGS */}
+            {tab === "settings" && (
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 max-w-xl">
+                <div className="font-display font-bold mb-1">Platform fee configuration</div>
+                <p className="text-sm text-slate-400 mb-5">Applied automatically to every paid order to compute vendor payouts.</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Fee percentage (%)</label>
+                    <Input
+                      type="number" step="0.1" min={0} max={100}
+                      value={settingsRow.fee_percent}
+                      onChange={(e) => setSettingsRow((s) => ({ ...s, fee_percent: Number(e.target.value) }))}
+                      className="mt-1 bg-slate-950 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Flat fee per ticket (MWK)</label>
+                    <Input
+                      type="number" step="1" min={0}
+                      value={settingsRow.fee_flat_mwk}
+                      onChange={(e) => setSettingsRow((s) => ({ ...s, fee_flat_mwk: Number(e.target.value) }))}
+                      className="mt-1 bg-slate-950 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-500 bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+                    Example: an order with 4 tickets totalling MWK 20,000 → fee = 20,000 × {settingsRow.fee_percent}% + {settingsRow.fee_flat_mwk} × 4 = <span className="text-slate-300 font-bold">{formatMWK(20000 * settingsRow.fee_percent / 100 + settingsRow.fee_flat_mwk * 4)}</span>. Vendor receives <span className="text-emerald-400 font-bold">{formatMWK(20000 - (20000 * settingsRow.fee_percent / 100 + settingsRow.fee_flat_mwk * 4))}</span>.
+                  </div>
+                  <Button onClick={saveSettings} disabled={savingSettings} className="bg-violet-600 hover:bg-violet-500 text-white">
+                    <Save className="w-4 h-4" /> {savingSettings ? "Saving…" : "Save settings"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* AUDIT */}
             {tab === "audit" && (
               <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
