@@ -220,6 +220,8 @@ const AdminDashboard = () => {
                   {tab === "overview" && "Operations overview"}
                   {tab === "users" && "Users & roles"}
                   {tab === "events" && "All events"}
+                  {tab === "payouts" && "Vendor payouts"}
+                  {tab === "settings" && "Platform fees"}
                   {tab === "audit" && "Audit log"}
                 </h1>
               </div>
@@ -293,6 +295,11 @@ const AdminDashboard = () => {
                             {o.status}
                           </div>
                           <div className="font-display font-bold">{formatMWK(o.total_mwk)}</div>
+                          {o.status === "paid" && (
+                            <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800" title="Resend ticket email" onClick={() => resendEmail(o.id)}>
+                              <Mail className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
