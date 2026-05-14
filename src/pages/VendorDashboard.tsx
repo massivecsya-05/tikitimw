@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, formatDate, formatMWK } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil, Wallet } from "lucide-react";
 
 type EventSales = { revenue: number; sold: number };
 
@@ -21,6 +21,7 @@ const VendorDashboard = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [sales, setSales] = useState<Record<string, EventSales>>({});
   const [stats, setStats] = useState({ revenue: 0, sold: 0, eventsCount: 0 });
+  const [payouts, setPayouts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [tiers, setTiers] = useState([{ name: "Regular", price: "", quantity: "" }]);
   const [creating, setCreating] = useState(false);
@@ -68,6 +69,8 @@ const VendorDashboard = () => {
       setSales({});
       setStats({ revenue: 0, sold: 0, eventsCount: 0 });
     }
+    const { data: po } = await supabase.from("vendor_payouts").select("*").eq("vendor_id", user.id).order("created_at", { ascending: false });
+    setPayouts(po ?? []);
   };
 
   useEffect(() => { refresh(); }, [user]);
