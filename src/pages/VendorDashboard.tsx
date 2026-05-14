@@ -277,6 +277,51 @@ const VendorDashboard = () => {
           ))}
         </div>
 
+        {/* Payouts */}
+        {payouts.length > 0 && (
+          <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border flex items-center gap-3">
+              <Wallet className="w-4 h-4 text-primary" />
+              <div className="font-display font-bold flex-1">Earnings & payouts</div>
+              <div className="text-xs text-muted-foreground">
+                Pending: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "pending").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
+                {" · "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground bg-muted/30">
+                  <tr>
+                    <th className="p-3">Date</th>
+                    <th className="p-3">Order</th>
+                    <th className="p-3">Tickets</th>
+                    <th className="p-3">Gross</th>
+                    <th className="p-3">Platform fee</th>
+                    <th className="p-3">You receive</th>
+                    <th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payouts.map(p => (
+                    <tr key={p.id} className="border-t border-border">
+                      <td className="p-3 text-muted-foreground">{formatDate(p.created_at)}</td>
+                      <td className="p-3 font-mono text-xs">{p.order_id.slice(0, 8)}</td>
+                      <td className="p-3">{p.tickets_count}</td>
+                      <td className="p-3">{formatMWK(p.gross_mwk)}</td>
+                      <td className="p-3 text-amber-600">−{formatMWK(p.fee_mwk)}</td>
+                      <td className="p-3 font-display font-bold text-secondary">{formatMWK(p.net_mwk)}</td>
+                      <td className="p-3"><span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${p.status === "paid" ? "bg-secondary/15 text-secondary" : p.status === "cancelled" ? "bg-muted text-muted-foreground" : "bg-amber-500/15 text-amber-600"}`}>{p.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-5 py-3 border-t border-border bg-muted/20 text-xs text-muted-foreground">
+              To withdraw your pending balance, contact the platform admin. Payouts are processed manually via bank or mobile money.
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="all">
           <TabsList><TabsTrigger value="all">All events</TabsTrigger><TabsTrigger value="published">Published</TabsTrigger><TabsTrigger value="draft">Drafts</TabsTrigger></TabsList>
           {["all", "published", "draft"].map(s => (
