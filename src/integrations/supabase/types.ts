@@ -295,6 +295,7 @@ export type Database = {
     }
     Functions: {
       check_in: { Args: { p_order_item_id: string }; Returns: Json }
+      cleanup_past_events: { Args: never; Returns: number }
       confirm_payment: {
         Args: {
           p_order_id: string
