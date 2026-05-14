@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/PageShell";
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
-import { Ticket, Calendar, MapPin, QrCode } from "lucide-react";
+import { Ticket, Calendar, MapPin, QrCode, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TicketQRDialog } from "@/components/TicketQRDialog";
+import { toast } from "sonner";
 
 const CustomerDashboard = () => {
   const { user, loading } = useAuth();
@@ -19,13 +20,24 @@ const CustomerDashboard = () => {
     (async () => {
       const { data } = await supabase
         .from("order_items")
-        .select("id,quantity,unit_price_mwk,qr_code,checked_in,events(title,venue,city,starts_at,banner_url),orders!inner(customer_id,status,payment_method,created_at)")
+        .select("id,order_id,quantity,unit_price_mwk,qr_code,checked_in,events(title,venue,city,starts_at,banner_url),orders!inner(id,customer_id,status,payment_method,created_at)")
         .eq("orders.customer_id", user.id)
         .order("created_at", { ascending: false });
       setItems(data ?? []);
       setLoadingItems(false);
     })();
   }, [user]);
+
+  const resendEmail = async (orderId: string) => {
+    const t = toast.loading("Sending ticket email…");
+    const { data, error } = await supabase.functions.invoke("send-ticket-email", {
+      body: { order_id: orderId, force: true },
+    });
+    toast.dismiss(t);
+    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error!.message);
+    if ((data as any)?.skipped) return toast.message((data as any).skipped);
+    toast.success("Ticket email sent");
+  };
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" />;
@@ -67,13 +79,22 @@ const CustomerDashboard = () => {
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-border gap-2">
                     <div className="font-bold text-primary">{formatMWK(it.unit_price_mwk)}</div>
-                    <button
-                      onClick={() => setActiveTicket(it)}
-                      className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded-md bg-muted hover:bg-primary hover:text-primary-foreground transition-smooth cursor-pointer"
-                      aria-label="View QR code"
-                    >
-                      <QrCode className="w-3 h-3"/>{it.qr_code.slice(0, 10)}…
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => resendEmail(it.order_id)}
+                        title="Resend ticket email"
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-muted hover:bg-primary hover:text-primary-foreground transition-smooth"
+                      >
+                        <Mail className="w-3 h-3"/>Resend
+                      </button>
+                      <button
+                        onClick={() => setActiveTicket(it)}
+                        className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded-md bg-muted hover:bg-primary hover:text-primary-foreground transition-smooth cursor-pointer"
+                        aria-label="View QR code"
+                      >
+                        <QrCode className="w-3 h-3"/>{it.qr_code.slice(0, 8)}…
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

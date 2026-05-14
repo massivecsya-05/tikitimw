@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { order_id } = await req.json();
+    const { order_id, force } = await req.json();
     if (!order_id) return json({ error: "order_id required" }, 400);
 
     const admin = createClient(
@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
       .eq("id", order_id)
       .single();
     if (oErr || !order) return json({ error: "order not found" }, 404);
-    if (order.status !== "paid") return json({ ok: true, skipped: "not paid yet" });
-    if (order.email_sent_at) return json({ ok: true, skipped: "already sent" });
+    if (order.status !== "paid") return json({ ok: false, error: "order not paid yet" }, 422);
+    if (order.email_sent_at && !force) return json({ ok: true, skipped: "already sent" });
 
     // Resolve recipient email: prefer order.customer_email, else auth user email
     let to = order.customer_email;

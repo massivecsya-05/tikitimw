@@ -7,14 +7,14 @@ import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
   AlertCircle, TrendingUp, Search, Crown, Store, UserCheck, ArrowUpRight,
-  Eye, EyeOff, Trash2,
+  Eye, EyeOff, Trash2, Mail, Settings as SettingsIcon, Wallet, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "events" | "audit";
+type Tab = "overview" | "users" | "events" | "payouts" | "settings" | "audit";
 
 const AdminDashboard = () => {
   const { user, roles, loading } = useAuth();
@@ -28,6 +28,9 @@ const AdminDashboard = () => {
   const [audit, setAudit] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [settingsRow, setSettingsRow] = useState<{ fee_percent: number; fee_flat_mwk: number }>({ fee_percent: 5, fee_flat_mwk: 200 });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
     const [
@@ -38,6 +41,8 @@ const AdminDashboard = () => {
       { data: orders },
       { data: auditData },
       emailsRes,
+      { data: payoutsData },
+      { data: settingsData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
@@ -46,6 +51,8 @@ const AdminDashboard = () => {
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("order_audit_log").select("*").order("created_at", { ascending: false }).limit(40),
       supabase.functions.invoke("admin-users", { body: { action: "list" } }),
+      supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
@@ -56,6 +63,8 @@ const AdminDashboard = () => {
     setEvents(ev ?? []);
     setAudit(auditData ?? []);
     setRecentOrders(orders?.slice(0, 8) ?? []);
+    setPayouts(payoutsData ?? []);
+    if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
     setStats({
       users: profiles?.length ?? 0,
@@ -118,6 +127,34 @@ const AdminDashboard = () => {
     load();
   };
 
+  const resendEmail = async (orderId: string) => {
+    const t = toast.loading("Sending ticket email…");
+    const { data, error } = await supabase.functions.invoke("send-ticket-email", { body: { order_id: orderId, force: true } });
+    toast.dismiss(t);
+    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error!.message);
+    if ((data as any)?.skipped) return toast.message((data as any).skipped);
+    toast.success("Ticket email sent");
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    const { error } = await supabase.from("platform_settings").update({
+      fee_percent: settingsRow.fee_percent,
+      fee_flat_mwk: settingsRow.fee_flat_mwk,
+      updated_at: new Date().toISOString(),
+    }).eq("id", true);
+    setSavingSettings(false);
+    if (error) return toast.error(error.message);
+    toast.success("Fee settings saved");
+  };
+
+  const markPayoutPaid = async (id: string) => {
+    const { error } = await supabase.from("vendor_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Payout marked as paid");
+    load();
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       !search ||
@@ -163,6 +200,8 @@ const AdminDashboard = () => {
               {navItem("overview", "Overview", Activity)}
               {navItem("users", "Users & roles", Users)}
               {navItem("events", "All events", CalendarDays)}
+              {navItem("payouts", "Vendor payouts", Wallet)}
+              {navItem("settings", "Platform fees", SettingsIcon)}
               {navItem("audit", "Audit log", AlertCircle)}
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 px-2">
@@ -181,6 +220,8 @@ const AdminDashboard = () => {
                   {tab === "overview" && "Operations overview"}
                   {tab === "users" && "Users & roles"}
                   {tab === "events" && "All events"}
+                  {tab === "payouts" && "Vendor payouts"}
+                  {tab === "settings" && "Platform fees"}
                   {tab === "audit" && "Audit log"}
                 </h1>
               </div>
@@ -254,6 +295,11 @@ const AdminDashboard = () => {
                             {o.status}
                           </div>
                           <div className="font-display font-bold">{formatMWK(o.total_mwk)}</div>
+                          {o.status === "paid" && (
+                            <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800" title="Resend ticket email" onClick={() => resendEmail(o.id)}>
+                              <Mail className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -400,6 +446,92 @@ const AdminDashboard = () => {
                     </Button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* PAYOUTS */}
+            {tab === "payouts" && (
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                  <div className="font-display font-bold">Vendor payouts</div>
+                  <div className="text-xs text-slate-500">{payouts.length} records</div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-950/60 text-left text-slate-400 text-xs uppercase tracking-widest">
+                      <tr>
+                        <th className="p-4">Vendor</th>
+                        <th className="p-4">Order</th>
+                        <th className="p-4">Tickets</th>
+                        <th className="p-4">Gross</th>
+                        <th className="p-4">Fee</th>
+                        <th className="p-4">Net to vendor</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payouts.length === 0 && (
+                        <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-500">No payouts yet. They are created automatically when an order is paid.</td></tr>
+                      )}
+                      {payouts.map((p) => {
+                        const vendorLabel = users.find((u) => u.id === p.vendor_id);
+                        return (
+                          <tr key={p.id} className="border-t border-slate-800">
+                            <td className="p-4 text-slate-200">{vendorLabel?.full_name ?? vendorLabel?.email ?? p.vendor_id.slice(0, 8)}</td>
+                            <td className="p-4 font-mono text-xs text-slate-400">{p.order_id.slice(0, 8)}</td>
+                            <td className="p-4">{p.tickets_count}</td>
+                            <td className="p-4">{formatMWK(p.gross_mwk)}</td>
+                            <td className="p-4 text-amber-400">{formatMWK(p.fee_mwk)}</td>
+                            <td className="p-4 font-display font-bold text-emerald-400">{formatMWK(p.net_mwk)}</td>
+                            <td className="p-4">
+                              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${p.status === "paid" ? "bg-emerald-500/15 text-emerald-400" : p.status === "cancelled" ? "bg-slate-700/40 text-slate-400" : "bg-amber-500/15 text-amber-400"}`}>{p.status}</span>
+                            </td>
+                            <td className="p-4 text-right">
+                              {p.status === "pending" && (
+                                <Button size="sm" variant="outline" className="border-emerald-700/50 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300" onClick={() => markPayoutPaid(p.id)}>Mark paid</Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SETTINGS */}
+            {tab === "settings" && (
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 max-w-xl">
+                <div className="font-display font-bold mb-1">Platform fee configuration</div>
+                <p className="text-sm text-slate-400 mb-5">Applied automatically to every paid order to compute vendor payouts.</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Fee percentage (%)</label>
+                    <Input
+                      type="number" step="0.1" min={0} max={100}
+                      value={settingsRow.fee_percent}
+                      onChange={(e) => setSettingsRow((s) => ({ ...s, fee_percent: Number(e.target.value) }))}
+                      className="mt-1 bg-slate-950 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Flat fee per ticket (MWK)</label>
+                    <Input
+                      type="number" step="1" min={0}
+                      value={settingsRow.fee_flat_mwk}
+                      onChange={(e) => setSettingsRow((s) => ({ ...s, fee_flat_mwk: Number(e.target.value) }))}
+                      className="mt-1 bg-slate-950 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-500 bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+                    Example: an order with 4 tickets totalling MWK 20,000 → fee = 20,000 × {settingsRow.fee_percent}% + {settingsRow.fee_flat_mwk} × 4 = <span className="text-slate-300 font-bold">{formatMWK(20000 * settingsRow.fee_percent / 100 + settingsRow.fee_flat_mwk * 4)}</span>. Vendor receives <span className="text-emerald-400 font-bold">{formatMWK(20000 - (20000 * settingsRow.fee_percent / 100 + settingsRow.fee_flat_mwk * 4))}</span>.
+                  </div>
+                  <Button onClick={saveSettings} disabled={savingSettings} className="bg-violet-600 hover:bg-violet-500 text-white">
+                    <Save className="w-4 h-4" /> {savingSettings ? "Saving…" : "Save settings"}
+                  </Button>
+                </div>
               </div>
             )}
 
