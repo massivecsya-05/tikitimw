@@ -154,6 +154,8 @@ const AdminDashboard = () => {
     toast.success("Payout marked as paid");
     load();
   };
+
+  const filteredUsers = users.filter(
     (u) =>
       !search ||
       (u.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
