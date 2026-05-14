@@ -7,14 +7,14 @@ import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
   AlertCircle, TrendingUp, Search, Crown, Store, UserCheck, ArrowUpRight,
-  Eye, EyeOff, Trash2,
+  Eye, EyeOff, Trash2, Mail, Settings as SettingsIcon, Wallet, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "events" | "audit";
+type Tab = "overview" | "users" | "events" | "payouts" | "settings" | "audit";
 
 const AdminDashboard = () => {
   const { user, roles, loading } = useAuth();
@@ -28,6 +28,9 @@ const AdminDashboard = () => {
   const [audit, setAudit] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [settingsRow, setSettingsRow] = useState<{ fee_percent: number; fee_flat_mwk: number }>({ fee_percent: 5, fee_flat_mwk: 200 });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
     const [
