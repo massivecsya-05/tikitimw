@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.cleanup_past_events() FROM PUBLIC, anon, authenticated;
