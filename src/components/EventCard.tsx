@@ -17,8 +17,8 @@ export const EventCard = ({ e }: { e: EventCardData }) => {
   const cat = CATEGORIES.find(c => c.value === e.category);
   return (
     <Link to={`/events/${e.id}`} className="group block animate-fade-up">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-card shadow-card hover:shadow-glow transition-smooth border border-border/50">
-        <div className="aspect-[4/5] overflow-hidden bg-muted">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-card shadow-card hover:shadow-glow transition-smooth border border-border/50">
+        <div className="aspect-[4/3] overflow-hidden bg-muted">
           {e.banner_url ? (
             <img src={e.banner_url} alt={e.title} loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-smooth" />
@@ -34,11 +34,11 @@ export const EventCard = ({ e }: { e: EventCardData }) => {
             </div>
           )}
         </div>
-        <div className="p-5">
-          <h3 className="font-display font-bold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-smooth">{e.title}</h3>
-          <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary"/>{formatDate(e.starts_at)}</div>
-            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary"/>{e.venue}, {e.city}</div>
+        <div className="p-3.5">
+          <h3 className="font-display font-bold text-base leading-tight line-clamp-2 group-hover:text-primary transition-smooth">{e.title}</h3>
+          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary"/>{formatDate(e.starts_at)}</div>
+            <div className="flex items-center gap-1.5 truncate"><MapPin className="w-3.5 h-3.5 text-primary shrink-0"/><span className="truncate">{e.venue}, {e.city}</span></div>
           </div>
         </div>
       </div>

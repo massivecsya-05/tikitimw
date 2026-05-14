@@ -297,7 +297,7 @@ const AdminDashboard = () => {
                           <td className="p-4 text-slate-400">{u.phone ?? "—"}</td>
                           <td className="p-4">
                             <div className="flex gap-1 flex-wrap">
-                              {u.roles.map((r: string) => (
+                              {(u.roles.length > 1 ? u.roles.filter((r: string) => r !== "customer") : u.roles).map((r: string) => (
                                 <span
                                   key={r}
                                   className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wide ${

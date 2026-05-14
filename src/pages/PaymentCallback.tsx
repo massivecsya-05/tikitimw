@@ -29,9 +29,17 @@ const PaymentCallback = () => {
       if (data.status === "failed" || data.status === "refunded") {
         setStatus("failed"); return;
       }
-      // Still pending — try again up to ~30 seconds total
-      if (tries >= 15) { setStatus("pending"); return; }
-      setTimeout(() => setTries((t) => t + 1), 2000);
+
+      // Webhook may not have fired yet — actively verify with PayChangu.
+      try {
+        const { data: v } = await supabase.functions.invoke("verify-payment", {
+          body: { order_id: orderId },
+        });
+        if (!cancelled && (v as any)?.ok) { setStatus("paid"); return; }
+      } catch (_) { /* keep polling */ }
+
+      if (tries >= 10) { setStatus("pending"); return; }
+      setTimeout(() => setTries((t) => t + 1), 2500);
     };
     poll();
     return () => { cancelled = true; };
