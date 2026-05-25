@@ -1,0 +1,111 @@
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Ticket, User, LogOut, LayoutDashboard, Store, Shield, Languages } from "lucide-react";
+
+export const Navbar = () => {
+  const { user, roles, signOut } = useAuth();
+  const { lang, setLang, t } = useLanguage();
+  const navigate = useNavigate();
+
+  return (
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/75 border-b border-border/60 hidden md:block">
+      <nav className="container mx-auto flex items-center justify-between h-16 px-4">
+        <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-xl min-h-12">
+          <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow">
+            <Ticket className="w-5 h-5 text-primary-foreground" />
+          </span>
+          <span>
+            Tikiti<span className="text-primary">MW</span>
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-8 text-sm font-medium">
+          <Link to="/" className="hover:text-primary transition-smooth min-h-12 inline-flex items-center">
+            {t("nav.home")}
+          </Link>
+          <Link to="/events" className="hover:text-primary transition-smooth min-h-12 inline-flex items-center">
+            {t("nav.explore")}
+          </Link>
+          <Link to="/become-vendor" className="hover:text-primary transition-smooth min-h-12 inline-flex items-center">
+            {t("nav.sell")}
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 min-h-12"
+            onClick={() => setLang(lang === "en" ? "chi" : "en")}
+            aria-label="Toggle language"
+          >
+            <Languages className="w-4 h-4" />
+            {lang === "en" ? "EN" : "CHI"}
+          </Button>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 min-h-12">
+                  <span className="w-8 h-8 rounded-full bg-gradient-emerald text-secondary-foreground grid place-items-center text-sm font-bold">
+                    {user.email?.[0].toUpperCase()}
+                  </span>
+                  <span className="hidden sm:inline">{t("nav.account")}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => navigate("/my-tickets")}>
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  {t("nav.tickets")}
+                </DropdownMenuItem>
+                {roles.includes("vendor") && (
+                  <DropdownMenuItem onClick={() => navigate("/organiser/dashboard")}>
+                    <Store className="w-4 h-4 mr-2" />
+                    Organiser
+                  </DropdownMenuItem>
+                )}
+                {roles.includes("admin") && (
+                  <DropdownMenuItem onClick={() => navigate("/admin")}>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await signOut();
+                    navigate("/");
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" className="min-h-12" onClick={() => navigate("/auth")}>
+                Sign in
+              </Button>
+              <Button variant="hero" size="sm" className="min-h-12" onClick={() => navigate("/auth?mode=signup")}>
+                Get started
+              </Button>
+            </>
+          )}
+        </div>
+      </nav>
+    </header>
+  );
+};
