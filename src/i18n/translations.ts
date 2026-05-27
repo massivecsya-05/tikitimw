@@ -35,6 +35,21 @@ const en = {
   "faq.title": "Frequently asked questions",
   "referral.invite": "Invite friends",
   "referral.copy": "Copy link",
+  "profile.title": "Your profile",
+  "profile.save": "Save changes",
+  "profile.saving": "Saving…",
+  "profile.updated": "Profile updated",
+  "profile.passwordTitle": "Change password",
+  "profile.currentPassword": "Current password",
+  "profile.newPassword": "New password",
+  "profile.confirmPassword": "Confirm new password",
+  "profile.updatePassword": "Update password",
+  "profile.updatingPassword": "Updating…",
+  "profile.passwordUpdated": "Password updated",
+  "profile.passwordMismatch": "Passwords do not match",
+  "profile.passwordTooShort": "Password must be at least 6 characters",
+  "profile.wrongPassword": "Current password is incorrect",
+  "profile.signOut": "Sign out",
 } as const;
 
 const chi: Record<keyof typeof en, string> = {
@@ -72,6 +87,21 @@ const chi: Record<keyof typeof en, string> = {
   "faq.title": "Mafunso omwe amafunsidwa",
   "referral.invite": "Itanani anzanu",
   "referral.copy": "Koperani link",
+  "profile.title": "Mbiri yanu",
+  "profile.save": "Sungani",
+  "profile.saving": "Kusunga…",
+  "profile.updated": "Mbiri yasinthidwa",
+  "profile.passwordTitle": "Sinthani mawu achinsinsi",
+  "profile.currentPassword": "Mawu achinsinsi lero",
+  "profile.newPassword": "Mawu achinsinsi atsopano",
+  "profile.confirmPassword": "Tsimikizani mawu achinsinsi",
+  "profile.updatePassword": "Sinthani mawu achinsinsi",
+  "profile.updatingPassword": "Kusintha…",
+  "profile.passwordUpdated": "Mawu achinsinsi asinthidwa",
+  "profile.passwordMismatch": "Mawu achinsinsi siyofanana",
+  "profile.passwordTooShort": "Mawu achinsinsi ayenera kukhala osachepera 6",
+  "profile.wrongPassword": "Mawu achinsinsi lero ndi olakwika",
+  "profile.signOut": "Tulukani",
 };
 
 export const translations: Record<Lang, Record<keyof typeof en, string>> = { en, chi };
