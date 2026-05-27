@@ -30,6 +30,7 @@ const VendorDashboard = () => {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
+  // Edit dialog state
   const [editing, setEditing] = useState<any | null>(null);
   const [editBannerFile, setEditBannerFile] = useState<File | null>(null);
   const [editBannerPreview, setEditBannerPreview] = useState<string | null>(null);
@@ -236,6 +237,7 @@ const VendorDashboard = () => {
                     )}
                   </div>
                 </div>
+
                 <div>
                   <div className="flex justify-between items-center mb-2"><Label>Ticket tiers</Label>
                     <Button type="button" size="sm" variant="outline" onClick={() => setTiers([...tiers, { name: "", price: "", quantity: "" }])}><Plus className="w-4 h-4"/></Button>
@@ -258,6 +260,7 @@ const VendorDashboard = () => {
           </div>
         </div>
 
+        {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4 mb-10">
           {[
             { label: "Revenue", value: formatMWK(stats.revenue), icon: DollarSign, gradient: "bg-gradient-hero" },
@@ -286,6 +289,7 @@ const VendorDashboard = () => {
 
         {user && <div className="mb-10"><PromoCodes vendorId={user.id} /></div>}
 
+        {/* Payouts */}
         {payouts.length > 0 && (
           <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center gap-3">
@@ -367,6 +371,7 @@ const VendorDashboard = () => {
           ))}
         </Tabs>
 
+        {/* Edit dialog */}
         <Dialog open={!!editing} onOpenChange={(o) => !o && closeEdit()}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display text-2xl">Edit event</DialogTitle></DialogHeader>

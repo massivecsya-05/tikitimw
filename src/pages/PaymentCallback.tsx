@@ -127,6 +127,10 @@ const PaymentCallback = () => {
           <>
             <Loader2 className="w-14 h-14 text-amber-500 mb-4" />
             <h1 className="font-display font-bold text-3xl">Still processing</h1>
+            <p className="text-muted-foreground mt-2">
+              Your payment is taking longer than usual. Check your dashboard in a minute — if it doesn't show
+              up, contact support.
+            </p>
             <Button asChild variant="outline" size="lg" className="mt-6 min-h-12">
               <Link to="/my-tickets">My tickets</Link>
             </Button>

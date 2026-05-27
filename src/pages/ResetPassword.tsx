@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/PasswordInput";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Ticket } from "lucide-react";
@@ -52,6 +53,8 @@ const ResetPassword = () => {
         <form onSubmit={submit} className="space-y-4">
           <div><Label>New password</Label><PasswordInput name="password" required minLength={6} className="h-11" /></div>
           <div><Label>Confirm password</Label><PasswordInput name="confirm" required minLength={6} className="h-11" /></div>
+          <div><Label>New password</Label><Input name="password" type="password" required minLength={6} className="h-11" /></div>
+          <div><Label>Confirm password</Label><Input name="confirm" type="password" required minLength={6} className="h-11" /></div>
           <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || !ready}>
             {loading ? "Updating…" : "Update password"}
           </Button>
