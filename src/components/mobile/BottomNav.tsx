@@ -37,7 +37,10 @@ export const BottomNav = () => {
               to={tab.to}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium min-h-12 transition-colors",
-                active ? "text-primary" : "text-muted-foreground",
+                "rounded-xl mx-2",
+                active
+                  ? "text-primary bg-muted/80 shadow-sm shadow-primary/20"
+                  : "text-muted-foreground hover:bg-muted/60",
               )}
             >
               <Icon className="w-5 h-5" />

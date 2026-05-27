@@ -10,9 +10,19 @@ import { StatsBar } from "@/components/home/StatsBar";
 import { FAQ } from "@/components/home/FAQ";
 import { UpcomingScroll } from "@/components/home/UpcomingScroll";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Music, Trophy, Briefcase, Landmark, Star, Laugh, Church } from "lucide-react";
 import { usePublishedEvents } from "@/hooks/useEvents";
 import { CATEGORIES } from "@/lib/format";
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  music:       <Music className="w-5 h-5" />,
+  sports:      <Trophy className="w-5 h-5" />,
+  conferences: <Briefcase className="w-5 h-5" />,
+  cultural:    <Landmark className="w-5 h-5" />,
+  festivals:   <Star className="w-5 h-5" />,
+  comedy:      <Laugh className="w-5 h-5" />,
+  church:      <Church className="w-5 h-5" />,
+};
 
 const Home = () => {
   const { data: events = [], isLoading } = usePublishedEvents(12);
@@ -35,16 +45,18 @@ const Home = () => {
 
       {featured && <UpcomingScroll events={events} />}
 
-      <section className="container mx-auto px-4 py-10 -mt-4 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <section className="container mx-auto px-4 py-6 -mt-4 relative z-10">
+        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
           {CATEGORIES.filter((c) => c.value !== "all").map((c) => (
             <Link
               key={c.value}
               to={`/events?category=${c.value}`}
-              className="group bg-gradient-card border border-border/50 rounded-2xl p-5 text-center shadow-card hover:shadow-glow hover:-translate-y-1 transition-all duration-150 min-h-12"
+              className="group bg-gradient-card border border-border/50 rounded-xl p-3 text-center shadow-card hover:shadow-glow hover:-translate-y-1 transition-all duration-150"
             >
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{c.emoji}</div>
-              <div className="font-semibold text-sm">{c.filterLabel}</div>
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary mx-auto mb-1.5 group-hover:scale-110 transition-transform">
+                {CATEGORY_ICONS[c.value] ?? <Star className="w-5 h-5" />}
+              </div>
+              <div className="font-medium text-xs">{c.filterLabel}</div>
             </Link>
           ))}
         </div>

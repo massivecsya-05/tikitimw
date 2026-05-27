@@ -79,19 +79,8 @@ const Profile = () => {
   return (
     <PageShell>
       <div className="container mx-auto px-4 py-12 pb-28 md:pb-12 max-w-xl">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div className="mb-8">
           <h1 className="font-display font-extrabold text-4xl">{t("profile.title")}</h1>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="min-h-12 gap-2"
-            onClick={handleSignOut}
-            disabled={signingOut}
-          >
-            <LogOut className="w-4 h-4" />
-            {signingOut ? "…" : t("profile.signOut")}
-          </Button>
         </div>
 
         <form onSubmit={save} className="space-y-4 bg-gradient-card border border-border rounded-3xl p-6 md:p-8 shadow-card">
@@ -135,6 +124,20 @@ const Profile = () => {
             {changingPassword ? t("profile.updatingPassword") : t("profile.updatePassword")}
           </Button>
         </form>
+
+        <Separator className="my-8" />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full min-h-12 gap-2"
+          onClick={handleSignOut}
+          disabled={signingOut}
+        >
+          <LogOut className="w-4 h-4" />
+          {signingOut ? "…" : t("profile.signOut")}
+        </Button>
       </div>
     </PageShell>
   );

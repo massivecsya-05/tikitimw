@@ -1,48 +1,17 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { EventCard } from "@/components/EventCard";
 import { EventCardSkeleton } from "@/components/EventCardSkeleton";
-import { CATEGORIES, FILTER_CITIES } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useFilteredEvents } from "@/hooks/useEvents";
-import type { EventFilters } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Events = () => {
-  const [params, setParams] = useSearchParams();
   const { t } = useLanguage();
   const [q, setQ] = useState("");
-  const [category, setCategory] = useState(params.get("category") ?? "all");
-  const [city, setCity] = useState("all");
-  const [dateRange, setDateRange] = useState<EventFilters["dateRange"]>("all");
-  const [priceFilter, setPriceFilter] = useState<"all" | "free" | "paid">("all");
 
-  const filters: EventFilters = useMemo(
-    () => ({
-      search: q,
-      category: category === "all" ? undefined : category,
-      city: city === "all" ? undefined : city,
-      dateRange,
-      freeOnly: priceFilter === "free",
-      paidOnly: priceFilter === "paid",
-    }),
-    [q, category, city, dateRange, priceFilter],
-  );
-
-  const { filtered, count, isLoading } = useFilteredEvents(filters);
-
-  const setCategoryParam = (c: string) => {
-    setCategory(c);
-    if (c === "all") setParams({});
-    else setParams({ category: c });
-  };
-
-  const chip = (active: boolean) =>
-    `px-4 py-2.5 rounded-full text-sm font-medium border transition-colors min-h-12 ${
-      active ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/40"
-    }`;
+  const { filtered, count, isLoading } = useFilteredEvents({ search: q });
 
   return (
     <PageShell>
@@ -64,62 +33,6 @@ const Events = () => {
               <option key={e.id} value={e.title} />
             ))}
           </datalist>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Category</p>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
-                <button key={c.value} type="button" onClick={() => setCategoryParam(c.value)} className={chip(category === c.value)}>
-                  {c.filterLabel}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">City</p>
-            <div className="flex flex-wrap gap-2">
-              {FILTER_CITIES.map((c) => (
-                <button key={c.value} type="button" onClick={() => setCity(c.value)} className={chip(city === c.value)}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Date</p>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["all", "All"],
-                  ["weekend", "This Weekend"],
-                  ["month", "This Month"],
-                  ["upcoming", "Upcoming"],
-                ] as const
-              ).map(([v, label]) => (
-                <button key={v} type="button" onClick={() => setDateRange(v)} className={chip(dateRange === v)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Price</p>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["all", "All"],
-                  ["free", "Free"],
-                  ["paid", "Paid"],
-                ] as const
-              ).map(([v, label]) => (
-                <button key={v} type="button" onClick={() => setPriceFilter(v)} className={chip(priceFilter === v)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         <p className="mt-6 text-sm text-muted-foreground">

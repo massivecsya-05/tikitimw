@@ -1,7 +1,8 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,11 +16,15 @@ export const Navbar = () => {
   const { user, roles, signOut } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/75 border-b border-border/60 hidden md:block">
       <nav className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-xl min-h-12">
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-display font-extrabold text-xl min-h-12"
+        >
           <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow">
             <Ticket className="w-5 h-5 text-primary-foreground" />
           </span>
@@ -29,13 +34,31 @@ export const Navbar = () => {
         </Link>
 
         <div className="flex items-center gap-8 text-sm font-medium">
-          <Link to="/" className="hover:text-primary transition-smooth min-h-12 inline-flex items-center">
+          <Link
+            to="/"
+            className={cn(
+              "min-h-12 inline-flex items-center border-b-2 border-transparent hover:border-primary/40 hover:text-primary transition-smooth",
+              pathname === "/" && "text-primary border-primary",
+            )}
+          >
             {t("nav.home")}
           </Link>
-          <Link to="/events" className="hover:text-primary transition-smooth min-h-12 inline-flex items-center">
+          <Link
+            to="/events"
+            className={cn(
+              "min-h-12 inline-flex items-center border-b-2 border-transparent hover:border-primary/40 hover:text-primary transition-smooth",
+              pathname.startsWith("/events") && "text-primary border-primary",
+            )}
+          >
             {t("nav.explore")}
           </Link>
-          <Link to="/become-vendor" className="hover:text-primary transition-smooth min-h-12 inline-flex items-center">
+          <Link
+            to="/become-vendor"
+            className={cn(
+              "min-h-12 inline-flex items-center border-b-2 border-transparent hover:border-primary/40 hover:text-primary transition-smooth",
+              pathname.startsWith("/become-vendor") && "text-primary border-primary",
+            )}
+          >
             {t("nav.sell")}
           </Link>
         </div>
