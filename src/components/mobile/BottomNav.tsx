@@ -1,18 +1,22 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Compass, Ticket, User } from "lucide-react";
+import { Home, Compass, Ticket, User, Store } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
-const tabs = [
-  { to: "/", icon: Home, key: "nav.home" as const },
-  { to: "/events", icon: Compass, key: "nav.explore" as const },
-  { to: "/my-tickets", icon: Ticket, key: "nav.tickets" as const },
-  { to: "/profile", icon: User, key: "nav.account" as const },
-];
-
 export const BottomNav = () => {
   const { pathname } = useLocation();
+  const { roles } = useAuth();
   const { t } = useLanguage();
+  const canManageEvents = roles.includes("vendor") || roles.includes("admin");
+
+  const tabs = [
+    { to: "/", icon: Home, label: t("nav.home") },
+    { to: "/events", icon: Compass, label: t("nav.explore") },
+    ...(canManageEvents ? [{ to: "/organiser/dashboard", icon: Store, label: "Organiser" }] : []),
+    { to: "/my-tickets", icon: Ticket, label: t("nav.tickets") },
+    { to: "/profile", icon: User, label: t("nav.account") },
+  ];
 
   const hide =
     pathname.startsWith("/admin") ||
@@ -27,7 +31,7 @@ export const BottomNav = () => {
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-xl safe-area-pb"
       aria-label="Main navigation"
     >
-      <div className="grid grid-cols-4 h-16">
+      <div className={cn("grid h-16", canManageEvents ? "grid-cols-5" : "grid-cols-4")}>
         {tabs.map((tab) => {
           const active = tab.to === "/" ? pathname === "/" : pathname.startsWith(tab.to);
           const Icon = tab.icon;
@@ -44,7 +48,7 @@ export const BottomNav = () => {
               )}
             >
               <Icon className="w-5 h-5" />
-              {t(tab.key)}
+              {tab.label}
             </Link>
           );
         })}
