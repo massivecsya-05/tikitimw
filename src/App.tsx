@@ -55,13 +55,15 @@ const App = () => {
                   <Route path="/my-tickets/:id" element={<TicketDetail />} />
                   <Route path="/vendor" element={<Navigate to="/organiser/dashboard" replace />} />
                   <Route path="/organiser/dashboard" element={<VendorDashboard />} />
-                  <Route path="/organiser/check-in" element={<Scanner />} />
+                  <Route path="/organiser/scan" element={<Scanner />} />
+                  <Route path="/organiser/check-in" element={<Navigate to="/organiser/scan" replace />} />
                   <Route path="/organiser/create" element={<Navigate to="/organiser/dashboard" replace />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
                   <Route path="/become-vendor" element={<BecomeVendor />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/payment/callback" element={<PaymentCallback />} />
-                  <Route path="/scanner" element={<Navigate to="/organiser/check-in" replace />} />
+                  <Route path="/scanner" element={<Navigate to="/organiser/scan" replace />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="*" element={<NotFound />} />

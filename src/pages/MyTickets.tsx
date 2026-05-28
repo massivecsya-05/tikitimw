@@ -100,6 +100,14 @@ const MyTickets = () => {
             </div>
             <div className="flex-1 p-4 flex flex-col">
               <h3 className="font-display font-bold leading-tight line-clamp-2">{it.events?.title}</h3>
+              {it.qr_code?.startsWith("data:image") && (
+                <img
+                  src={it.qr_code}
+                  alt="Ticket QR"
+                  className="w-16 h-16 rounded border border-border mt-2"
+                  loading="lazy"
+                />
+              )}
               <div className="text-sm text-muted-foreground mt-2 space-y-1 flex-1">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5" />
@@ -112,9 +120,16 @@ const MyTickets = () => {
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                 <span className="font-bold text-primary">{formatMWK(it.unit_price_mwk)}</span>
-                <Button asChild size="sm" variant="hero" className="min-h-12">
-                  <Link to={`/my-tickets/${it.id}`}>View Ticket</Link>
-                </Button>
+                <div className="flex gap-2">
+                  {it.qr_code?.startsWith("data:image") && (
+                    <Button asChild size="sm" variant="outline" className="min-h-12">
+                      <a href={it.qr_code} download={`ticket-${it.id}.png`}>Download</a>
+                    </Button>
+                  )}
+                  <Button asChild size="sm" variant="hero" className="min-h-12">
+                    <Link to={`/my-tickets/${it.id}`}>View</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

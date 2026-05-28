@@ -123,6 +123,27 @@ const EventDetail = () => {
               )}
             </div>
             <aside className="lg:sticky lg:top-24 h-fit">
+              <div className="rounded-2xl border border-border bg-gradient-card p-4 mb-4">
+                <h3 className="font-display font-bold mb-2">Available ticket tiers</h3>
+                {tiers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No active tiers right now.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tiers.map((tier) => {
+                      const sold = Number((tier as any).quantity_sold ?? tier.sold ?? 0);
+                      const remainingQty = Math.max(0, tier.quantity - sold);
+                      return (
+                        <div key={tier.id} className="flex items-center justify-between text-sm">
+                          <span className="truncate">{tier.name}</span>
+                          <span className="text-muted-foreground">
+                            {formatMWK(tier.price_mwk)} · {remainingQty} left
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <Button variant="hero" size="lg" className="w-full min-h-12" onClick={() => (user ? setShowCheckout(true) : nav(`/auth?redirect=/events/${id}`))}>
                 Get tickets
               </Button>

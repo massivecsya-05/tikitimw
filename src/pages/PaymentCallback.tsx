@@ -25,7 +25,7 @@ const PaymentCallback = () => {
     queryKey: ["order-items", orderId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("order_items")
+        .from("tickets" as any)
         .select("id,qr_code,events(title,venue,city,starts_at)")
         .eq("order_id", orderId!);
       if (error) throw error;
@@ -85,7 +85,12 @@ const PaymentCallback = () => {
 
   useEffect(() => {
     const code = items?.[0]?.qr_code;
-    if (code) QRCode.toDataURL(code, { width: 240 }).then(setQrUrl);
+    if (!code) return;
+    if (code.startsWith("data:image")) {
+      setQrUrl(code);
+      return;
+    }
+    QRCode.toDataURL(code, { width: 240 }).then(setQrUrl);
   }, [items]);
 
   const first = items?.[0];

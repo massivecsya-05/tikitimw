@@ -36,6 +36,10 @@ const TicketDetail = () => {
 
   useEffect(() => {
     if (!qr) return;
+    if (qr.startsWith("data:image")) {
+      setQrDataUrl(qr);
+      return;
+    }
     QRCode.toDataURL(qr, { width: 280, margin: 2 }).then(setQrDataUrl);
   }, [qr]);
 

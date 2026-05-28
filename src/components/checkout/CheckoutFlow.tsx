@@ -41,6 +41,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
   const [submitting, setSubmitting] = useState(false);
   const [promptSentAt, setPromptSentAt] = useState<number | null>(null);
   const [showResend, setShowResend] = useState(false);
+  const MAX_TICKETS_PER_ORDER = 4;
 
   const total = tiers.reduce((sum, tier) => sum + (qty[tier.id] ?? 0) * Number(tier.price_mwk), 0);
   const totalQty = Object.values(qty).reduce((a, b) => a + b, 0);
@@ -57,7 +58,14 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
   }, [promptSentAt]);
 
   const setQ = (id: string, n: number, max: number) => {
-    setQty((p) => ({ ...p, [id]: Math.max(0, Math.min(n, max)) }));
+    setQty((p) => {
+      const currentTotalWithoutTier = Object.entries(p).reduce(
+        (acc, [key, value]) => acc + (key === id ? 0 : value),
+        0,
+      );
+      const cap = Math.max(0, Math.min(max, MAX_TICKETS_PER_ORDER - currentTotalWithoutTier));
+      return { ...p, [id]: Math.max(0, Math.min(n, cap)) };
+    });
   };
 
   const sortedMethods = [...PAYMENT_METHODS].sort((a, b) => {
@@ -75,6 +83,11 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
       toast.error("Name and phone are required");
       return;
     }
+    const normalizedPhone = phone.trim();
+    if (!/^\+265[0-9]{7,9}$/.test(normalizedPhone)) {
+      toast.error("Use a valid Malawi phone number in +265 format");
+      return;
+    }
     setSubmitting(true);
     try {
       const order = await createPendingOrder({
@@ -82,6 +95,8 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
         totalMwk: total,
         paymentMethod: pay,
         customerEmail: email || user.email || undefined,
+        customerName: name.trim(),
+        customerPhone: normalizedPhone,
       });
 
       const items = tiers
@@ -145,7 +160,8 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
           {step === 1 && (
             <div className="space-y-3">
               {tiers.map((tier) => {
-                const remaining = tier.quantity - tier.sold;
+                const sold = Number((tier as any).quantity_sold ?? tier.sold ?? 0);
+                const remaining = tier.quantity - sold;
                 const current = qty[tier.id] ?? 0;
                 return (
                   <div key={tier.id} className="border border-border rounded-2xl p-4">
@@ -172,7 +188,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                         variant="outline"
                         className="min-h-12 min-w-12"
                         onClick={() => setQ(tier.id, current + 1, remaining)}
-                        disabled={current >= remaining}
+                        disabled={current >= remaining || totalQty >= MAX_TICKETS_PER_ORDER}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -187,7 +203,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                 disabled={totalQty === 0}
                 onClick={() => setStep(2)}
               >
-                Continue
+                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER})
               </Button>
             </div>
           )}

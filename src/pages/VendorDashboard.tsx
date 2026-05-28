@@ -15,15 +15,21 @@ import { toast } from "sonner";
 import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil, Wallet, ScanLine } from "lucide-react";
 import { PromoCodes } from "@/components/organiser/PromoCodes";
 import { generateId } from "@/lib/uuid";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 type EventSales = { revenue: number; sold: number };
+type DailySale = { day: string; revenue: number; sold: number };
+type TierBreakdown = { tier_id: string; tier_name: string; sold: number; remaining: number; revenue: number };
 
 const VendorDashboard = () => {
   const { user, roles, loading } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [sales, setSales] = useState<Record<string, EventSales>>({});
-  const [stats, setStats] = useState({ revenue: 0, sold: 0, eventsCount: 0 });
+  const [stats, setStats] = useState({ revenue: 0, sold: 0, eventsCount: 0, remaining: 0, checkInRate: 0 });
   const [payouts, setPayouts] = useState<any[]>([]);
+  const [dailySales, setDailySales] = useState<DailySale[]>([]);
+  const [tierBreakdown, setTierBreakdown] = useState<TierBreakdown[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [tiers, setTiers] = useState([{ name: "Regular", price: "", quantity: "" }]);
   const [creating, setCreating] = useState(false);
@@ -56,7 +62,15 @@ const VendorDashboard = () => {
     setEvents(ev ?? []);
     const ids = (ev ?? []).map(e => e.id);
     if (ids.length) {
-      const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id").in("event_id", ids);
+      const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id,tier_id,created_at").in("event_id", ids);
+      const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,quantity_sold,price_mwk").in("event_id", ids);
+      const { data: ticketRows } = await (supabase as any).from("tickets").select("status,event_id,created_at,tier_id").in("event_id", ids);
+      const { data: orderRows } = await supabase
+        .from("order_items")
+        .select("id,unit_price_mwk,event_id,orders!inner(id,customer_name,customer_email,status,created_at),ticket_tiers(name)")
+        .in("event_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(20);
       const sold = items?.reduce((s, i) => s + i.quantity, 0) ?? 0;
       const revenue = items?.reduce((s, i) => s + Number(i.unit_price_mwk) * i.quantity, 0) ?? 0;
       const perEvent: Record<string, EventSales> = {};
@@ -65,11 +79,50 @@ const VendorDashboard = () => {
         e.sold += i.quantity;
         e.revenue += Number(i.unit_price_mwk) * i.quantity;
       });
+      const remaining = (tiersData ?? []).reduce((sum, t: any) => {
+        const soldQty = Number(t.quantity_sold ?? t.sold ?? 0);
+        return sum + Math.max(0, Number(t.quantity) - soldQty);
+      }, 0);
+      const used = (ticketRows ?? []).filter((t: any) => t.status === "used").length;
+      const validTickets = (ticketRows ?? []).filter((t: any) => t.status !== "cancelled").length;
+      const checkInRate = validTickets > 0 ? (used / validTickets) * 100 : 0;
+
+      const byDay = new Map<string, { revenue: number; sold: number }>();
+      (items ?? []).forEach((it: any) => {
+        const day = new Date(it.created_at ?? Date.now()).toISOString().slice(0, 10);
+        const cur = byDay.get(day) ?? { revenue: 0, sold: 0 };
+        cur.sold += Number(it.quantity);
+        cur.revenue += Number(it.unit_price_mwk) * Number(it.quantity);
+        byDay.set(day, cur);
+      });
+      const daily = Array.from(byDay.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([day, v]) => ({ day, revenue: v.revenue, sold: v.sold }));
+
+      const breakdownByTier = new Map<string, TierBreakdown>();
+      (tiersData ?? []).forEach((t: any) => {
+        const soldQty = Number(t.quantity_sold ?? t.sold ?? 0);
+        const rem = Math.max(0, Number(t.quantity) - soldQty);
+        breakdownByTier.set(t.id, {
+          tier_id: t.id,
+          tier_name: t.name,
+          sold: soldQty,
+          remaining: rem,
+          revenue: soldQty * Number(t.price_mwk),
+        });
+      });
+
       setSales(perEvent);
-      setStats({ revenue, sold, eventsCount: ev?.length ?? 0 });
+      setStats({ revenue, sold, eventsCount: ev?.length ?? 0, remaining, checkInRate });
+      setDailySales(daily);
+      setTierBreakdown(Array.from(breakdownByTier.values()).sort((a, b) => b.revenue - a.revenue));
+      setRecentOrders(orderRows ?? []);
     } else {
       setSales({});
-      setStats({ revenue: 0, sold: 0, eventsCount: 0 });
+      setStats({ revenue: 0, sold: 0, eventsCount: 0, remaining: 0, checkInRate: 0 });
+      setDailySales([]);
+      setTierBreakdown([]);
+      setRecentOrders([]);
     }
     const { data: po } = await supabase.from("vendor_payouts").select("*").eq("vendor_id", user.id).order("created_at", { ascending: false });
     setPayouts(po ?? []);
@@ -204,7 +257,7 @@ const VendorDashboard = () => {
             <h1 className="font-display font-extrabold text-4xl md:text-5xl">Your event hub</h1>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline" size="lg" className="min-h-12"><Link to="/organiser/check-in"><QrCode/> Scanner</Link></Button>
+            <Button asChild variant="outline" size="lg" className="min-h-12"><Link to="/organiser/scan"><QrCode/> Scanner</Link></Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild><Button variant="hero" size="lg"><Plus/> Create event</Button></DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -265,7 +318,8 @@ const VendorDashboard = () => {
           {[
             { label: "Revenue", value: formatMWK(stats.revenue), icon: DollarSign, gradient: "bg-gradient-hero" },
             { label: "Tickets sold", value: stats.sold, icon: Ticket, gradient: "bg-gradient-emerald" },
-            { label: "Active events", value: stats.eventsCount, icon: TrendingUp, gradient: "bg-gradient-gold" },
+            { label: "Tickets remaining", value: stats.remaining, icon: TrendingUp, gradient: "bg-gradient-gold" },
+            { label: "Check-in rate", value: `${stats.checkInRate.toFixed(1)}%`, icon: ScanLine, gradient: "bg-gradient-emerald" },
           ].map((s, i) => (
             <div key={i} className="p-6 rounded-2xl bg-gradient-card border border-border shadow-card flex items-center gap-4">
               <div className={`w-12 h-12 rounded-xl ${s.gradient} grid place-items-center text-primary-foreground`}>
@@ -279,15 +333,92 @@ const VendorDashboard = () => {
           ))}
         </div>
 
+        <div className="grid lg:grid-cols-2 gap-6 mb-10">
+          <div className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card">
+            <h3 className="font-display font-bold mb-4">Daily sales (MWK)</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dailySales}>
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                  <XAxis dataKey="day" tickFormatter={(d) => d.slice(5)} />
+                  <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+                  <Tooltip formatter={(v: any) => formatMWK(v)} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card overflow-x-auto">
+            <h3 className="font-display font-bold mb-4">Tier breakdown</h3>
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="pb-2">Tier</th>
+                  <th className="pb-2">Sold</th>
+                  <th className="pb-2">Remaining</th>
+                  <th className="pb-2">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tierBreakdown.map((row) => (
+                  <tr key={row.tier_id} className="border-t border-border">
+                    <td className="py-2">{row.tier_name}</td>
+                    <td className="py-2">{row.sold}</td>
+                    <td className="py-2">{row.remaining}</td>
+                    <td className="py-2 font-semibold">{formatMWK(row.revenue)}</td>
+                  </tr>
+                ))}
+                {tierBreakdown.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-muted-foreground">No tier sales yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-3 mb-8">
           <Button asChild variant="outline" className="min-h-12 gap-2">
-            <Link to="/organiser/check-in">
+            <Link to="/organiser/scan">
               <ScanLine className="w-4 h-4" /> Gate check-in scanner
             </Link>
           </Button>
         </div>
 
         {user && <div className="mb-10"><PromoCodes vendorId={user.id} /></div>}
+
+        <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-border font-display font-bold">Recent orders</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground bg-muted/30">
+                <tr>
+                  <th className="p-3">Buyer</th>
+                  <th className="p-3">Tier</th>
+                  <th className="p-3">Amount</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentOrders.map((o: any) => (
+                  <tr key={o.id} className="border-t border-border">
+                    <td className="p-3">{o.orders?.customer_name ?? o.orders?.customer_email ?? "Guest"}</td>
+                    <td className="p-3">{o.ticket_tiers?.name ?? "Tier"}</td>
+                    <td className="p-3">{formatMWK(o.unit_price_mwk ?? 0)}</td>
+                    <td className="p-3">{o.orders?.status}</td>
+                  </tr>
+                ))}
+                {recentOrders.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-5 text-center text-muted-foreground">No recent orders.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Payouts */}
         {payouts.length > 0 && (

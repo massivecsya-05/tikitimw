@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
+import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/PageShell";
@@ -12,28 +12,32 @@ import { TicketQRDialog } from "@/components/TicketQRDialog";
 
 type Result =
   | { kind: "ok"; event_title: string; tier_name: string; attendee_name: string | null }
-  | { kind: "already"; event_title: string; tier_name: string; attendee_name: string | null; checked_in_at: string }
+  | { kind: "already"; event_title: string; tier_name: string; attendee_name: string | null }
   | { kind: "not_found" }
   | { kind: "unauthorized" }
   | { kind: "error"; message: string };
 
 const Scanner = () => {
   const { user, roles, loading } = useAuth();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastScanRef = useRef<{ code: string; at: number } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [manual, setManual] = useState("");
   const [activeQr, setActiveQr] = useState<{ code: string; title?: string; tier?: string; checkedIn?: boolean } | null>(null);
 
-  const stop = () => {
-    controlsRef.current?.stop();
-    controlsRef.current = null;
+  const stop = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      await scannerRef.current.stop();
+    }
     setScanning(false);
   };
 
-  useEffect(() => () => stop(), []);
+  useEffect(() => {
+    return () => {
+      void stop();
+    };
+  }, []);
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" />;
@@ -56,34 +60,26 @@ const Scanner = () => {
     lastScanRef.current = { code, at: now };
 
     try {
-      // Look up the order_item by qr_code, then call check_in RPC
-      const { data: items, error: lookupErr } = await supabase
-        .from("order_items")
-        .select("id")
-        .eq("qr_code", code)
-        .limit(1);
-      if (lookupErr) throw lookupErr;
-      if (!items || items.length === 0) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code)) {
         setResult({ kind: "not_found" });
         return;
       }
-      const { data, error } = await supabase.rpc("check_in", { p_order_item_id: items[0].id });
+      const { data, error } = await supabase.rpc("scan_ticket", { p_ticket_id: code });
       if (error) throw error;
       const r = data as any;
-      if (r.status === "checked_in") {
+      if (r.status === "used_ok") {
         setResult({ kind: "ok", event_title: r.event_title, tier_name: r.tier_name, attendee_name: r.attendee_name });
         toast.success(`✓ ${r.attendee_name ?? "Guest"} — ${r.tier_name}`);
         setActiveQr({ code, title: r.event_title, tier: r.tier_name, checkedIn: true });
-      } else if (r.status === "already_checked_in") {
+      } else if (r.status === "already_used") {
         setResult({
           kind: "already",
           event_title: r.event_title,
           tier_name: r.tier_name,
           attendee_name: r.attendee_name,
-          checked_in_at: r.checked_in_at,
         });
         setActiveQr({ code, title: r.event_title, tier: r.tier_name, checkedIn: true });
-      } else if (r.status === "unauthorized") {
+      } else if (r.status === "unauthorized_event" || r.status === "wrong_event") {
         setResult({ kind: "unauthorized" });
       } else {
         setResult({ kind: "not_found" });
@@ -94,16 +90,18 @@ const Scanner = () => {
   };
 
   const start = async () => {
-    if (!videoRef.current) return;
     setResult(null);
-    const reader = new BrowserMultiFormatReader();
+    const scannerId = "organiser-qr-reader";
+    const scanner = new Html5Qrcode(scannerId);
+    scannerRef.current = scanner;
     try {
-      const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current, (res) => {
-        if (res) {
-          submit(res.getText().trim());
-        }
-      });
-      controlsRef.current = controls;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 8, qrbox: { width: 260, height: 260 } },
+        (decodedText) => {
+          void submit(decodedText.trim());
+        },
+      );
       setScanning(true);
     } catch (e: any) {
       toast.error("Camera unavailable: " + (e.message ?? "permission denied"));
@@ -126,7 +124,7 @@ const Scanner = () => {
         <h1 className="font-display font-extrabold text-4xl md:text-5xl mb-6">Ticket scanner</h1>
 
         <div className="rounded-2xl overflow-hidden border border-border bg-black aspect-square mb-3 relative">
-          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+          <div id="organiser-qr-reader" className="w-full h-full" />
           {!scanning && (
             <div className="absolute inset-0 grid place-items-center text-white/70">
               <Camera className="w-12 h-12" />
@@ -140,7 +138,7 @@ const Scanner = () => {
               <Camera /> Start scanning
             </Button>
           ) : (
-            <Button variant="outline" size="lg" className="flex-1" onClick={stop}>
+            <Button variant="outline" size="lg" className="flex-1" onClick={() => void stop()}>
               <CameraOff /> Stop
             </Button>
           )}
@@ -181,14 +179,13 @@ const Scanner = () => {
                   <div className="font-display font-extrabold text-2xl">Already checked in</div>
                   <div className="font-bold mt-1">{result.attendee_name ?? "Guest"}</div>
                   <div className="text-sm text-muted-foreground">{result.event_title} · {result.tier_name}</div>
-                  <div className="text-xs text-muted-foreground mt-1">at {new Date(result.checked_in_at).toLocaleString()}</div>
                 </div>
               </div>
             )}
             {result.kind === "not_found" && (
               <div className="flex items-center gap-3">
                 <XCircle className="w-8 h-8 text-destructive" />
-                <div className="font-display font-extrabold text-xl">Ticket not found</div>
+                <div className="font-display font-extrabold text-xl">Invalid ticket</div>
               </div>
             )}
             {result.kind === "unauthorized" && (

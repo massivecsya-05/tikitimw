@@ -28,7 +28,7 @@ export interface EventFilters {
   search?: string;
 }
 
-type TierAgg = { event_id: string; price_mwk: number; quantity: number; sold: number };
+type TierAgg = { event_id: string; price_mwk: number; quantity: number; sold: number; quantity_sold?: number | null };
 
 export function enrichEventsWithTiers(
   events: Pick<EventRow, "id" | "title" | "city" | "venue" | "starts_at" | "banner_url" | "category" | "description">[],
@@ -48,7 +48,8 @@ export function enrichEventsWithTiers(
       const p = Number(t.price_mwk);
       if (minPrice === undefined || p < minPrice) minPrice = p;
       totalCapacity += t.quantity;
-      totalRemaining += Math.max(0, t.quantity - t.sold);
+      const sold = Number(t.quantity_sold ?? t.sold ?? 0);
+      totalRemaining += Math.max(0, t.quantity - sold);
     });
     return {
       ...e,
@@ -73,7 +74,7 @@ export async function fetchPublishedEvents(limit?: number) {
   const ids = events.map((e) => e.id);
   const { data: tiers, error: tErr } = await supabase
     .from("ticket_tiers")
-    .select("event_id,price_mwk,quantity,sold")
+    .select("event_id,price_mwk,quantity,sold,quantity_sold")
     .in("event_id", ids);
   if (tErr) throw tErr;
   return enrichEventsWithTiers(events, tiers ?? []);
@@ -92,7 +93,13 @@ export async function fetchEventTiers(eventId: string) {
     .eq("event_id", eventId)
     .order("price_mwk");
   if (error) throw error;
-  return data ?? [];
+  const now = Date.now();
+  return (data ?? []).filter((t: any) => {
+    const active = t.is_active !== false;
+    const started = !t.sale_start || new Date(t.sale_start).getTime() <= now;
+    const notEnded = !t.sale_end || new Date(t.sale_end).getTime() >= now;
+    return active && started && notEnded;
+  });
 }
 
 export async function fetchAllPublishedEvents() {
@@ -153,16 +160,28 @@ export interface UserTicketItem {
 }
 
 export async function fetchUserTickets(customerId: string): Promise<UserTicketItem[]> {
-  const { data, error } = await supabase
-    .from("order_items")
+  const { data, error } = await (supabase as any)
+    .from("tickets")
     .select(
-      "id,order_id,quantity,unit_price_mwk,qr_code,checked_in,created_at,tier_id,events(title,venue,city,starts_at,banner_url),orders!inner(id,customer_id,status,created_at),ticket_tiers(name)",
+      "id,order_id,qr_code,status,created_at,tier_id,orders!inner(id,customer_id,status,created_at,total_mwk),events(title,venue,city,starts_at,banner_url),ticket_tiers(name,price_mwk)",
     )
     .eq("orders.customer_id", customerId)
     .eq("orders.status", "paid")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as UserTicketItem[];
+  return ((data ?? []) as any[]).map((row) => ({
+    id: row.id,
+    order_id: row.order_id,
+    quantity: 1,
+    unit_price_mwk: Number(row.ticket_tiers?.price_mwk ?? row.orders?.total_mwk ?? 0),
+    qr_code: row.qr_code,
+    checked_in: row.status === "used",
+    created_at: row.created_at,
+    tier_id: row.tier_id,
+    events: row.events,
+    orders: row.orders,
+    ticket_tiers: row.ticket_tiers ? { name: row.ticket_tiers.name } : null,
+  }));
 }
 
 export function detectMobileNetwork(phone: string): "tnm_mpamba" | "airtel_money" | null {
@@ -181,6 +200,8 @@ export async function createPendingOrder(params: {
   totalMwk: number;
   paymentMethod: Database["public"]["Enums"]["payment_method"];
   customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
 }) {
   const { data: order, error } = await supabase
     .from("orders")
@@ -190,7 +211,9 @@ export async function createPendingOrder(params: {
       status: "pending",
       payment_method: params.paymentMethod,
       customer_email: params.customerEmail ?? null,
-    })
+      customer_name: params.customerName ?? null,
+      customer_phone: params.customerPhone ?? null,
+    } as any)
     .select()
     .single();
   if (error) throw error;

@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     // Load order + items + event/tier metadata
     const { data: order, error: oErr } = await admin
       .from("orders")
-      .select("id, customer_id, customer_email, total_mwk, status, email_sent_at")
+      .select("id, customer_id, customer_email, customer_name, customer_phone, total_mwk, status, email_sent_at")
       .eq("id", order_id)
       .single();
     if (oErr || !order) return json({ error: "order not found" }, 404);
@@ -45,6 +45,36 @@ Deno.serve(async (req) => {
       .eq("order_id", order_id);
     if (!items || items.length === 0) return json({ ok: false, error: "no items" }, 422);
 
+    // Ensure a ticket row exists per purchased ticket.
+    const { data: existingTickets } = await admin
+      .from("tickets")
+      .select("id")
+      .eq("order_id", order_id);
+
+    if (!existingTickets || existingTickets.length === 0) {
+      const insertRows: any[] = [];
+      for (const it of items) {
+        const qty = Math.max(1, Number(it.quantity ?? 1));
+        for (let i = 0; i < qty; i++) {
+          const ticketId = crypto.randomUUID();
+          const qrDataUrl = await QRCode.toDataURL(ticketId, { width: 320, margin: 1 });
+          insertRows.push({
+            id: ticketId,
+            order_id: order.id,
+            event_id: it.event_id,
+            tier_id: it.tier_id,
+            buyer_name: order.customer_name ?? null,
+            buyer_email: to,
+            buyer_phone: order.customer_phone ?? null,
+            qr_code: qrDataUrl,
+            status: "unused",
+          });
+        }
+      }
+      const { error: insertErr } = await admin.from("tickets").insert(insertRows);
+      if (insertErr) return json({ ok: false, error: insertErr.message }, 500);
+    }
+
     const eventIds = [...new Set(items.map((i) => i.event_id))];
     const tierIds = [...new Set(items.map((i) => i.tier_id))];
     const [{ data: events }, { data: tiers }] = await Promise.all([
@@ -54,14 +84,21 @@ Deno.serve(async (req) => {
     const eventMap = new Map((events ?? []).map((e) => [e.id, e]));
     const tierMap = new Map((tiers ?? []).map((t) => [t.id, t]));
 
+    const { data: tickets } = await admin
+      .from("tickets")
+      .select("id, qr_code, status, tier_id, event_id, created_at")
+      .eq("order_id", order_id)
+      .order("created_at", { ascending: true });
+    if (!tickets || tickets.length === 0) return json({ ok: false, error: "tickets not generated" }, 500);
+
     // Build inline QR images
     const ticketBlocks: string[] = [];
     const attachments: { filename: string; content: string }[] = [];
-    for (const it of items) {
-      const ev = eventMap.get(it.event_id);
-      const tier = tierMap.get(it.tier_id);
-      const dataUrl = await QRCode.toDataURL(it.qr_code, { width: 320, margin: 1 });
-      const cid = `qr-${it.id}`;
+    for (const tk of tickets) {
+      const ev = eventMap.get(tk.event_id);
+      const tier = tierMap.get(tk.tier_id);
+      const dataUrl = tk.qr_code;
+      const cid = `qr-${tk.id}`;
       attachments.push({
         filename: `${cid}.png`,
         content: dataUrl.split(",")[1],
@@ -72,10 +109,10 @@ Deno.serve(async (req) => {
           <div style="color:#666;font-size:13px;margin-top:2px">
             ${ev ? new Date(ev.starts_at).toLocaleString() : ""} · ${escape(ev?.venue ?? "")}, ${escape(ev?.city ?? "")}
           </div>
-          <div style="margin-top:8px;font-weight:600">${escape(tier?.name ?? "Ticket")} × ${it.quantity}</div>
+          <div style="margin-top:8px;font-weight:600">${escape(tier?.name ?? "Ticket")}</div>
           <div style="text-align:center;margin-top:12px">
             <img src="${dataUrl}" alt="QR" style="width:200px;height:200px" />
-            <div style="font-family:monospace;font-size:11px;color:#999;margin-top:6px">${it.qr_code}</div>
+            <div style="font-family:monospace;font-size:11px;color:#999;margin-top:6px">${tk.id}</div>
           </div>
         </div>
       `);
