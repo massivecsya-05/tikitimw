@@ -8,8 +8,8 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Ticket } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Logo } from "@/components/Logo";
 
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Min 6 characters").max(72);
@@ -67,7 +67,7 @@ const Auth = () => {
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-hero text-primary-foreground overflow-hidden">
         <div className="absolute -right-32 -bottom-32 w-96 h-96 rounded-full bg-accent/30 blur-3xl animate-float" />
         <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-2xl relative">
-          <span className="w-10 h-10 rounded-xl bg-background/20 backdrop-blur grid place-items-center"><Ticket className="w-6 h-6" /></span>
+          <Logo className="w-10 h-10 rounded-xl" />
           TikitiMW
         </Link>
         <div className="relative">
@@ -80,7 +80,7 @@ const Auth = () => {
       <div className="flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md">
           <Link to="/" className="lg:hidden flex items-center gap-2 font-display font-extrabold text-xl mb-8">
-            <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow"><Ticket className="w-5 h-5 text-primary-foreground" /></span>
+            <Logo className="w-9 h-9" />
             TikitiMW
           </Link>
           <Tabs value={tab} onValueChange={setTab as any}>
