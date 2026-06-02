@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageShell } from "@/components/PageShell";
-import { fetchUserTickets, type UserTicketItem } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureOrderTickets, fetchUserTickets, type UserTicketItem } from "@/lib/api";
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
 import { saveTicketsOffline, type StoredTicket } from "@/lib/tickets-storage";
 import { getReferralLink, whatsappShareUrl } from "@/lib/referral";
@@ -16,12 +17,49 @@ import { toast } from "sonner";
 const MyTickets = () => {
   const { user, loading } = useAuth();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const ensuredRef = useRef(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["my-tickets", user?.id],
     queryFn: () => fetchUserTickets(user!.id),
     enabled: !!user,
   });
+
+  useEffect(() => {
+    if (!user || isLoading || ensuredRef.current) return;
+    ensuredRef.current = true;
+    (async () => {
+      const { data: paidOrders } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("customer_id", user.id)
+        .eq("status", "paid");
+      if (!paidOrders?.length) return;
+
+      const { data: ticketOrders } = await supabase
+        .from("tickets")
+        .select("order_id")
+        .in(
+          "order_id",
+          paidOrders.map((o) => o.id),
+        );
+      const withTickets = new Set((ticketOrders ?? []).map((t) => t.order_id));
+      let refreshed = false;
+      for (const o of paidOrders) {
+        if (withTickets.has(o.id)) continue;
+        try {
+          await ensureOrderTickets(o.id);
+          refreshed = true;
+        } catch {
+          /* ignore per-order failures */
+        }
+      }
+      if (refreshed) {
+        await queryClient.invalidateQueries({ queryKey: ["my-tickets", user.id] });
+      }
+    })();
+  }, [user, isLoading, queryClient]);
 
   useEffect(() => {
     if (!items.length) return;

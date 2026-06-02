@@ -92,18 +92,18 @@ export const Navbar = () => {
                 {roles.includes("vendor") && (
                   <DropdownMenuItem onClick={() => navigate("/organiser/dashboard")}>
                     <Store className="w-4 h-4 mr-2" />
-                    Organiser
+                    {t("nav.organiser")}
                   </DropdownMenuItem>
                 )}
                 {roles.includes("admin") && (
                   <DropdownMenuItem onClick={() => navigate("/admin")}>
                     <Shield className="w-4 h-4 mr-2" />
-                    Admin
+                    {t("nav.admin")}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="w-4 h-4 mr-2" />
-                  Profile
+                  {t("nav.profile")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -113,17 +113,17 @@ export const Navbar = () => {
                   }}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
-                  Sign out
+                  {t("profile.signOut")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <>
               <Button variant="ghost" size="sm" className="min-h-12" onClick={() => navigate("/auth")}>
-                Sign in
+                {t("nav.signIn")}
               </Button>
               <Button variant="hero" size="sm" className="min-h-12" onClick={() => navigate("/auth?mode=signup")}>
-                Get started
+                {t("nav.getStarted")}
               </Button>
             </>
           )}

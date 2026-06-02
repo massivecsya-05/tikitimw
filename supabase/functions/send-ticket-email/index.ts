@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { order_id, force } = await req.json();
+    const { order_id, force, tickets_only } = await req.json();
     if (!order_id) return json({ error: "order_id required" }, 400);
 
     const admin = createClient(
@@ -29,15 +29,6 @@ Deno.serve(async (req) => {
       .single();
     if (oErr || !order) return json({ error: "order not found" }, 404);
     if (order.status !== "paid") return json({ ok: false, error: "order not paid yet" }, 422);
-    if (order.email_sent_at && !force) return json({ ok: true, skipped: "already sent" });
-
-    // Resolve recipient email: prefer order.customer_email, else auth user email
-    let to = order.customer_email;
-    if (!to) {
-      const { data: u } = await admin.auth.admin.getUserById(order.customer_id);
-      to = u?.user?.email ?? null;
-    }
-    if (!to) return json({ ok: false, error: "no recipient email" }, 422);
 
     const { data: items } = await admin
       .from("order_items")
@@ -64,7 +55,7 @@ Deno.serve(async (req) => {
             event_id: it.event_id,
             tier_id: it.tier_id,
             buyer_name: order.customer_name ?? null,
-            buyer_email: to,
+            buyer_email: order.customer_email ?? null,
             buyer_phone: order.customer_phone ?? null,
             qr_code: qrDataUrl,
             status: "unused",
@@ -90,6 +81,19 @@ Deno.serve(async (req) => {
       .eq("order_id", order_id)
       .order("created_at", { ascending: true });
     if (!tickets || tickets.length === 0) return json({ ok: false, error: "tickets not generated" }, 500);
+
+    if (tickets_only) return json({ ok: true, tickets_count: tickets.length });
+
+    if (order.email_sent_at && !force) {
+      return json({ ok: true, skipped: "already sent", tickets_count: tickets.length });
+    }
+
+    let to = order.customer_email;
+    if (!to) {
+      const { data: u } = await admin.auth.admin.getUserById(order.customer_id);
+      to = u?.user?.email ?? null;
+    }
+    if (!to) return json({ ok: true, skipped: "no recipient email", tickets_count: tickets.length });
 
     // Build inline QR images
     const ticketBlocks: string[] = [];

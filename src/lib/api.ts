@@ -72,12 +72,24 @@ export async function fetchPublishedEvents(limit?: number) {
   if (error) throw error;
   if (!events?.length) return [] as EventCardData[];
   const ids = events.map((e) => e.id);
-  const { data: tiers, error: tErr } = await supabase
+  let tiersRes = await supabase
     .from("ticket_tiers")
     .select("event_id,price_mwk,quantity,sold,quantity_sold")
     .in("event_id", ids);
+  if (tiersRes.error) {
+    tiersRes = await supabase
+      .from("ticket_tiers")
+      .select("event_id,price_mwk,quantity,sold")
+      .in("event_id", ids);
+  }
+  const { data: tiers, error: tErr } = tiersRes;
   if (tErr) throw tErr;
   return enrichEventsWithTiers(events, tiers ?? []);
+}
+
+export async function deleteEvent(eventId: string) {
+  const { error } = await supabase.rpc("delete_event", { p_event_id: eventId });
+  if (error) throw error;
 }
 
 export async function fetchEventById(id: string) {
@@ -160,7 +172,7 @@ export interface UserTicketItem {
 }
 
 export async function fetchUserTickets(customerId: string): Promise<UserTicketItem[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("tickets")
     .select(
       "id,order_id,qr_code,status,created_at,tier_id,orders!inner(id,customer_id,status,created_at,total_mwk),events(title,venue,city,starts_at,banner_url),ticket_tiers(name,price_mwk)",
@@ -169,11 +181,13 @@ export async function fetchUserTickets(customerId: string): Promise<UserTicketIt
     .eq("orders.status", "paid")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return ((data ?? []) as any[]).map((row) => ({
+  return (data ?? []).map((row) => ({
     id: row.id,
     order_id: row.order_id,
     quantity: 1,
-    unit_price_mwk: Number(row.ticket_tiers?.price_mwk ?? row.orders?.total_mwk ?? 0),
+    unit_price_mwk: Number(
+      (row.ticket_tiers as { price_mwk?: number } | null)?.price_mwk ?? row.orders?.total_mwk ?? 0,
+    ),
     qr_code: row.qr_code,
     checked_in: row.status === "used",
     created_at: row.created_at,
@@ -213,7 +227,7 @@ export async function createPendingOrder(params: {
       customer_email: params.customerEmail ?? null,
       customer_name: params.customerName ?? null,
       customer_phone: params.customerPhone ?? null,
-    } as any)
+    })
     .select()
     .single();
   if (error) throw error;
@@ -228,12 +242,21 @@ export async function insertOrderItems(
   if (error) throw error;
 }
 
-export async function initiatePayment(orderId: string, customerEmail: string | undefined, returnUrl: string) {
+export async function initiatePayment(orderId: string, customerEmail: string, returnUrl: string) {
   const { data, error } = await supabase.functions.invoke("initiate-payment", {
     body: { order_id: orderId, customer_email: customerEmail, return_url: returnUrl },
   });
   if (error) throw error;
   return data as { checkout_url?: string; error?: string };
+}
+
+/** Creates ticket rows (and sends email when configured) for a paid order. */
+export async function ensureOrderTickets(orderId: string) {
+  const { data, error } = await supabase.functions.invoke("send-ticket-email", {
+    body: { order_id: orderId, tickets_only: true },
+  });
+  if (error) throw error;
+  return data as { ok?: boolean; error?: string; tickets_count?: number; skipped?: string };
 }
 
 export async function submitVendorApplication(userId: string) {

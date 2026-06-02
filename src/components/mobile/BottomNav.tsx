@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 
 export const BottomNav = () => {
   const { pathname } = useLocation();
-  const { roles } = useAuth();
+  const { roles, loading } = useAuth();
   const { t } = useLanguage();
   const canManageEvents = roles.includes("vendor") || roles.includes("admin");
 
   const tabs = [
     { to: "/", icon: Home, label: t("nav.home") },
     { to: "/events", icon: Compass, label: t("nav.explore") },
-    ...(canManageEvents ? [{ to: "/organiser/dashboard", icon: Store, label: "Organiser" }] : []),
+    ...(canManageEvents ? [{ to: "/organiser/dashboard", icon: Store, label: t("nav.organiser") }] : []),
     { to: "/my-tickets", icon: Ticket, label: t("nav.tickets") },
     { to: "/profile", icon: User, label: t("nav.account") },
   ];
@@ -21,10 +21,9 @@ export const BottomNav = () => {
   const hide =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/organiser") ||
     pathname.startsWith("/payment");
 
-  if (hide) return null;
+  if (hide || loading) return null;
 
   return (
     <nav

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteEvent } from "@/lib/api";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,9 @@ const VendorDashboard = () => {
   const [dailySales, setDailySales] = useState<DailySale[]>([]);
   const [tierBreakdown, setTierBreakdown] = useState<TierBreakdown[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [scanLogs, setScanLogs] = useState<
+    { id: string; result: string; scanned_at: string; event_id: string | null; ticket_id: string | null }[]
+  >([]);
   const [open, setOpen] = useState(false);
   const [tiers, setTiers] = useState([{ name: "Regular", price: "", quantity: "" }]);
   const [creating, setCreating] = useState(false);
@@ -64,7 +68,7 @@ const VendorDashboard = () => {
     if (ids.length) {
       const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id,tier_id,created_at").in("event_id", ids);
       const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,quantity_sold,price_mwk").in("event_id", ids);
-      const { data: ticketRows } = await (supabase as any).from("tickets").select("status,event_id,created_at,tier_id").in("event_id", ids);
+      const { data: ticketRows } = await supabase.from("tickets").select("status,event_id,created_at,tier_id").in("event_id", ids);
       const { data: orderRows } = await supabase
         .from("order_items")
         .select("id,unit_price_mwk,event_id,orders!inner(id,customer_name,customer_email,status,created_at),ticket_tiers(name)")
@@ -117,12 +121,21 @@ const VendorDashboard = () => {
       setDailySales(daily);
       setTierBreakdown(Array.from(breakdownByTier.values()).sort((a, b) => b.revenue - a.revenue));
       setRecentOrders(orderRows ?? []);
+
+      const { data: logs } = await supabase
+        .from("scan_logs")
+        .select("id,result,scanned_at,event_id,ticket_id")
+        .in("event_id", ids)
+        .order("scanned_at", { ascending: false })
+        .limit(30);
+      setScanLogs(logs ?? []);
     } else {
       setSales({});
       setStats({ revenue: 0, sold: 0, eventsCount: 0, remaining: 0, checkInRate: 0 });
       setDailySales([]);
       setTierBreakdown([]);
       setRecentOrders([]);
+      setScanLogs([]);
     }
     const { data: po } = await supabase.from("vendor_payouts").select("*").eq("vendor_id", user.id).order("created_at", { ascending: false });
     setPayouts(po ?? []);
@@ -242,10 +255,14 @@ const VendorDashboard = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this event? This will also delete its tickets.")) return;
-    await supabase.from("events").delete().eq("id", id);
-    toast.success("Event deleted");
-    refresh();
+    if (!confirm("Delete this event? Ticket and order line items for this event will be removed.")) return;
+    try {
+      await deleteEvent(id);
+      toast.success("Event deleted");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete event");
+    }
   };
 
   return (
@@ -419,6 +436,46 @@ const VendorDashboard = () => {
             </table>
           </div>
         </div>
+
+        {/* Scan logs */}
+        {scanLogs.length > 0 && (
+          <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border flex items-center gap-3">
+              <ScanLine className="w-4 h-4 text-primary" />
+              <div className="font-display font-bold flex-1">Recent check-ins</div>
+            </div>
+            <div className="overflow-x-auto max-h-64 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground bg-muted/30 sticky top-0">
+                  <tr>
+                    <th className="p-3">Time</th>
+                    <th className="p-3">Result</th>
+                    <th className="p-3">Ticket</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scanLogs.map((log) => (
+                    <tr key={log.id} className="border-t border-border">
+                      <td className="p-3 text-muted-foreground whitespace-nowrap">{formatDate(log.scanned_at)}</td>
+                      <td className="p-3">
+                        <span
+                          className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                            log.result === "used_ok"
+                              ? "bg-secondary/15 text-secondary"
+                              : "bg-amber-500/15 text-amber-600"
+                          }`}
+                        >
+                          {log.result.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono text-xs">{log.ticket_id?.slice(0, 8) ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Payouts */}
         {payouts.length > 0 && (

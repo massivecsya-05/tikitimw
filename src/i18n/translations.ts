@@ -50,6 +50,19 @@ const en = {
   "profile.passwordTooShort": "Password must be at least 6 characters",
   "profile.wrongPassword": "Current password is incorrect",
   "profile.signOut": "Sign out",
+  "nav.organiser": "Organiser",
+  "nav.admin": "Admin",
+  "nav.profile": "Profile",
+  "nav.signIn": "Sign in",
+  "nav.getStarted": "Get started",
+  "auth.signIn": "Sign in",
+  "auth.signUp": "Create account",
+  "admin.title": "Admin dashboard",
+  "admin.loading": "Loading dashboard…",
+  "admin.emptyEvents": "No events yet.",
+  "admin.emptyOrders": "No orders yet.",
+  "scanner.title": "Check-in scanner",
+  "checkout.emailRequired": "Email is required for payment and ticket delivery",
 } as const;
 
 const chi: Record<keyof typeof en, string> = {
@@ -102,6 +115,19 @@ const chi: Record<keyof typeof en, string> = {
   "profile.passwordTooShort": "Mawu achinsinsi ayenera kukhala osachepera 6",
   "profile.wrongPassword": "Mawu achinsinsi lero ndi olakwika",
   "profile.signOut": "Tulukani",
+  "nav.organiser": "Wogulitsa",
+  "nav.admin": "Admin",
+  "nav.profile": "Mbiri",
+  "nav.signIn": "Lowani",
+  "nav.getStarted": "Yambani",
+  "auth.signIn": "Lowani",
+  "auth.signUp": "Pangani akaunti",
+  "admin.title": "Admin dashboard",
+  "admin.loading": "Kukweza…",
+  "admin.emptyEvents": "Palibe zochitika.",
+  "admin.emptyOrders": "Palibe maoda.",
+  "scanner.title": "Scanner ya check-in",
+  "checkout.emailRequired": "Imelo ndi yofunika pa malipiro ndi matikiti",
 };
 
 export const translations: Record<Lang, Record<keyof typeof en, string>> = { en, chi };

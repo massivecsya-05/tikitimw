@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -12,7 +12,6 @@ import Home from "./pages/Home";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import Auth from "./pages/Auth";
-import CustomerDashboard from "./pages/CustomerDashboard";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
 import VendorDashboard from "./pages/VendorDashboard";
@@ -55,7 +54,14 @@ const App = () => {
                   <Route path="/my-tickets/:id" element={<TicketDetail />} />
                   <Route path="/vendor" element={<Navigate to="/organiser/dashboard" replace />} />
                   <Route path="/organiser/dashboard" element={<VendorDashboard />} />
-                  <Route path="/organiser/scan" element={<Scanner />} />
+                  <Route
+                    path="/organiser/scan"
+                    element={
+                      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+                        <Scanner />
+                      </Suspense>
+                    }
+                  />
                   <Route path="/organiser/check-in" element={<Navigate to="/organiser/scan" replace />} />
                   <Route path="/organiser/create" element={<Navigate to="/organiser/dashboard" replace />} />
                   <Route path="/admin" element={<AdminDashboard />} />

@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteEvent } from "@/lib/api";
 import { PageShell } from "@/components/PageShell";
 import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
   AlertCircle, TrendingUp, Search, Crown, Store, UserCheck, ArrowUpRight,
   Eye, EyeOff, Trash2, Mail, Settings as SettingsIcon, Wallet, Save,
-  ClipboardList, CheckCircle2, XCircle,
+  ClipboardList, CheckCircle2, XCircle, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +21,9 @@ type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "setti
 
 const AdminDashboard = () => {
   const { user, roles, loading } = useAuth();
+  const { t } = useLanguage();
   const [tab, setTab] = useState<Tab>("overview");
+  const [dataLoading, setDataLoading] = useState(true);
   const [stats, setStats] = useState({
     users: 0, events: 0, tickets: 0, revenue: 0,
     pendingOrders: 0, paidOrders: 0, vendorsCount: 0, draftEvents: 0,
@@ -36,6 +40,8 @@ const AdminDashboard = () => {
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
 
   const load = async () => {
+    setDataLoading(true);
+    try {
     const [
       { data: profiles },
       { data: ev },
@@ -82,6 +88,9 @@ const AdminDashboard = () => {
       vendorsCount: enrichedUsers.filter((u) => u.roles.includes("vendor")).length,
       draftEvents: ev?.filter((e: any) => e.status === "draft").length ?? 0,
     });
+    } finally {
+      setDataLoading(false);
+    }
   };
 
   useEffect(() => { if (roles.includes("admin")) load(); }, [roles]);
@@ -130,12 +139,15 @@ const AdminDashboard = () => {
     load();
   };
 
-  const deleteEvent = async (id: string) => {
-    if (!confirm("Delete this event? This will also remove its tickets.")) return;
-    const { error } = await supabase.from("events").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Event deleted");
-    load();
+  const removeEvent = async (id: string) => {
+    if (!confirm("Delete this event? Ticket and order line items for this event will be removed.")) return;
+    try {
+      await deleteEvent(id);
+      toast.success("Event deleted");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete event");
+    }
   };
 
   const deleteUser = async (uid: string, label: string) => {
@@ -492,12 +504,17 @@ const AdminDashboard = () => {
             {/* EVENTS */}
             {tab === "events" && (
               <div className="space-y-2">
-                {events.length === 0 && (
-                  <div className="text-center py-16 text-slate-500 bg-slate-900/40 border border-slate-800 rounded-2xl">
-                    No events on the platform yet.
+                {dataLoading && (
+                  <div className="text-center py-16 text-slate-500 bg-slate-900/40 border border-slate-800 rounded-2xl flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> {t("admin.loading")}
                   </div>
                 )}
-                {events.map((ev) => (
+                {!dataLoading && events.length === 0 && (
+                  <div className="text-center py-16 text-slate-500 bg-slate-900/40 border border-slate-800 rounded-2xl">
+                    {t("admin.emptyEvents")}
+                  </div>
+                )}
+                {!dataLoading && events.map((ev) => (
                   <div key={ev.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex gap-4 items-center">
                     <div className="w-14 h-14 rounded-xl bg-slate-800 overflow-hidden">
                       {ev.banner_url ? (
@@ -538,7 +555,7 @@ const AdminDashboard = () => {
                       size="icon"
                       variant="ghost"
                       className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                      onClick={() => deleteEvent(ev.id)}
+                      onClick={() => removeEvent(ev.id)}
                     >
                       <Trash2 className="w-4 h-4"/>
                     </Button>

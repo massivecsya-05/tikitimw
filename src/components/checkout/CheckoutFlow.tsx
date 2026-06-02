@@ -83,6 +83,11 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
       toast.error("Name and phone are required");
       return;
     }
+    const payEmail = (email.trim() || user.email || "").trim();
+    if (!payEmail) {
+      toast.error(t("checkout.emailRequired"));
+      return;
+    }
     const normalizedPhone = phone.trim();
     if (!/^\+265[0-9]{7,9}$/.test(normalizedPhone)) {
       toast.error("Use a valid Malawi phone number in +265 format");
@@ -94,7 +99,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
         customerId: user.id,
         totalMwk: total,
         paymentMethod: pay,
-        customerEmail: email || user.email || undefined,
+        customerEmail: payEmail,
         customerName: name.trim(),
         customerPhone: normalizedPhone,
       });
@@ -113,7 +118,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
       await insertOrderItems(items);
 
       const returnUrl = `${window.location.origin}/payment/callback?order_id=${order.id}`;
-      const payData = await initiatePayment(order.id, email || user.email, returnUrl);
+      const payData = await initiatePayment(order.id, payEmail, returnUrl);
       if (payData.error) throw new Error(paymentErrorMessage(payData.error));
       if (!payData.checkout_url) throw new Error("Could not start payment. Please try again.");
 
@@ -226,13 +231,15 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                 />
               </div>
               <div>
-                <Label>Email (optional)</Label>
+                <Label>Email {user.email ? "(for tickets)" : "(required)"}</Label>
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
+                  required
                   className="h-12 mt-1"
                   inputMode="email"
+                  placeholder={user.email ?? "you@example.com"}
                 />
               </div>
               <div className="flex gap-2">

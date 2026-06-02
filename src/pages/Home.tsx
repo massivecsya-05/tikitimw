@@ -15,23 +15,30 @@ import { usePublishedEvents } from "@/hooks/useEvents";
 import { CATEGORIES } from "@/lib/format";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  music:       <Music className="w-5 h-5" />,
-  sports:      <Trophy className="w-5 h-5" />,
-  conferences: <Briefcase className="w-5 h-5" />,
-  cultural:    <Landmark className="w-5 h-5" />,
-  festivals:   <Star className="w-5 h-5" />,
-  comedy:      <Laugh className="w-5 h-5" />,
-  church:      <Church className="w-5 h-5" />,
+  concert:    <Music className="w-5 h-5" />,
+  sports:     <Trophy className="w-5 h-5" />,
+  conference: <Briefcase className="w-5 h-5" />,
+  cultural:   <Landmark className="w-5 h-5" />,
+  festival:   <Star className="w-5 h-5" />,
+  theatre:    <Laugh className="w-5 h-5" />,
+  other:      <Church className="w-5 h-5" />,
 };
 
 const Home = () => {
-  const { data: events = [], isLoading } = usePublishedEvents(12);
+  const { data: events = [], isLoading, isError, error } = usePublishedEvents(12);
   const featured = events[0] ?? null;
   const rest = events.slice(1);
 
   return (
     <PageShell>
-      {isLoading ? (
+      {isError ? (
+        <section className="container mx-auto px-4 py-20 text-center">
+          <p className="text-destructive font-medium">Could not load events.</p>
+          <p className="text-muted-foreground text-sm mt-2">
+            {(error as Error)?.message ?? "Check your connection and try again."}
+          </p>
+        </section>
+      ) : isLoading ? (
         <div className="min-h-[320px] bg-muted animate-pulse" />
       ) : featured ? (
         <FeaturedHero event={featured} />

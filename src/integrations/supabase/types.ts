@@ -163,6 +163,8 @@ export type Database = {
           created_at: string
           customer_email: string | null
           customer_id: string
+          customer_name: string | null
+          customer_phone: string | null
           email_sent_at: string | null
           id: string
           paid_at: string | null
@@ -176,6 +178,8 @@ export type Database = {
           created_at?: string
           customer_email?: string | null
           customer_id: string
+          customer_name?: string | null
+          customer_phone?: string | null
           email_sent_at?: string | null
           id?: string
           paid_at?: string | null
@@ -189,6 +193,8 @@ export type Database = {
           created_at?: string
           customer_email?: string | null
           customer_id?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           email_sent_at?: string | null
           id?: string
           paid_at?: string | null
@@ -199,6 +205,97 @@ export type Database = {
           total_mwk?: number
         }
         Relationships: []
+      }
+      scan_logs: {
+        Row: {
+          event_id: string | null
+          id: string
+          raw_code: string | null
+          result: string
+          scanned_at: string
+          scanned_by: string | null
+          ticket_id: string | null
+        }
+        Insert: {
+          event_id?: string | null
+          id?: string
+          raw_code?: string | null
+          result: string
+          scanned_at?: string
+          scanned_by?: string | null
+          ticket_id?: string | null
+        }
+        Update: {
+          event_id?: string | null
+          id?: string
+          raw_code?: string | null
+          result?: string
+          scanned_at?: string
+          scanned_by?: string | null
+          ticket_id?: string | null
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          buyer_email: string | null
+          buyer_name: string | null
+          buyer_phone: string | null
+          created_at: string
+          event_id: string
+          id: string
+          order_id: string
+          qr_code: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          tier_id: string
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          order_id: string
+          qr_code: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          tier_id: string
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          order_id?: string
+          qr_code?: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          tier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_settings: {
         Row: {
@@ -254,9 +351,13 @@ export type Database = {
           description: string | null
           event_id: string
           id: string
+          is_active: boolean
           name: string
           price_mwk: number
           quantity: number
+          quantity_sold: number
+          sale_end: string | null
+          sale_start: string | null
           sold: number
         }
         Insert: {
@@ -264,9 +365,13 @@ export type Database = {
           description?: string | null
           event_id: string
           id?: string
+          is_active?: boolean
           name: string
           price_mwk: number
           quantity: number
+          quantity_sold?: number
+          sale_end?: string | null
+          sale_start?: string | null
           sold?: number
         }
         Update: {
@@ -274,9 +379,13 @@ export type Database = {
           description?: string | null
           event_id?: string
           id?: string
+          is_active?: boolean
           name?: string
           price_mwk?: number
           quantity?: number
+          quantity_sold?: number
+          sale_end?: string | null
+          sale_start?: string | null
           sold?: number
         }
         Relationships: [
@@ -403,6 +512,14 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_event: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      scan_ticket: {
+        Args: { p_event_id?: string; p_ticket_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -430,6 +547,7 @@ export type Database = {
       payment_method: "airtel_money" | "tnm_mpamba" | "card" | "bank_transfer"
       payout_status: "pending" | "paid" | "cancelled"
       vendor_application_status: "pending" | "approved" | "rejected"
+      ticket_status: "unused" | "used" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -572,6 +690,7 @@ export const Constants = {
       payment_method: ["airtel_money", "tnm_mpamba", "card", "bank_transfer"],
       payout_status: ["pending", "paid", "cancelled"],
       vendor_application_status: ["pending", "approved", "rejected"],
+      ticket_status: ["unused", "used", "cancelled"],
     },
   },
 } as const

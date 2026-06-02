@@ -37,23 +37,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setTimeout(() => loadRoles(s.user.id), 0);
       } else {
         setRoles([]);
+        setLoading(false);
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) loadRoles(s.user.id);
+      if (s?.user) {
+        await loadRoles(s.user.id);
+      }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setRoles([]);
+  };
+
   const refreshRoles = async () => { if (user) await loadRoles(user.id); };
 
-  return <Ctx.Provider value={{ user, session, roles, loading, signOut, refreshRoles }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ user, session, roles, loading, signOut, refreshRoles }}>
+      {children}
+    </Ctx.Provider>
+  );
 };
 
 export const useAuth = () => useContext(Ctx);

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ type Result =
 
 const Scanner = () => {
   const { user, roles, loading } = useAuth();
+  const { t } = useLanguage();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastScanRef = useRef<{ code: string; at: number } | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -121,7 +123,7 @@ const Scanner = () => {
     <PageShell>
       <div className="container mx-auto px-4 py-12 max-w-2xl">
         <div className="text-xs uppercase tracking-widest text-primary font-bold mb-2">Gate</div>
-        <h1 className="font-display font-extrabold text-4xl md:text-5xl mb-6">Ticket scanner</h1>
+        <h1 className="font-display font-extrabold text-4xl md:text-5xl mb-6">{t("scanner.title")}</h1>
 
         <div className="rounded-2xl overflow-hidden border border-border bg-black aspect-square mb-3 relative">
           <div id="organiser-qr-reader" className="w-full h-full" />

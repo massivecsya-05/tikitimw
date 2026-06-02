@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Ticket } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Min 6 characters").max(72);
 const nameSchema = z.string().trim().min(2, "Min 2 characters").max(100);
 
 const Auth = () => {
+  const { t } = useLanguage();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const redirect = params.get("redirect") ?? "/dashboard";
@@ -83,8 +85,8 @@ const Auth = () => {
           </Link>
           <Tabs value={tab} onValueChange={setTab as any}>
             <TabsList className="grid grid-cols-2 w-full mb-6">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Create account</TabsTrigger>
+              <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+              <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
             </TabsList>
             <TabsContent value="signin">
               <h2 className="font-display font-bold text-3xl mb-1">Welcome back</h2>
@@ -100,7 +102,7 @@ const Auth = () => {
                     </Link>
                   </div>
                 </div>
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : "Sign in"}</Button>
+                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : t("auth.signIn")}</Button>
               </form>
             </TabsContent>
             <TabsContent value="signup">
@@ -111,7 +113,7 @@ const Auth = () => {
                 <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
                 <div><Label>Phone (optional)</Label><Input name="phone" placeholder="+265..." className="h-11" /></div>
                 <div><Label>Password</Label><PasswordInput name="password" required minLength={6} className="h-11" /></div>
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : "Create account"}</Button>
+                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : t("auth.signUp")}</Button>
               </form>
             </TabsContent>
           </Tabs>
