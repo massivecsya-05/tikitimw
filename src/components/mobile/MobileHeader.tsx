@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Ticket, Languages } from "lucide-react";
+import { Languages } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 
