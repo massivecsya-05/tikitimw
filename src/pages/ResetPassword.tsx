@@ -6,7 +6,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Ticket } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const ResetPassword = () => {
   const nav = useNavigate();
