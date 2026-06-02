@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Ticket, User, LogOut, LayoutDashboard, Store, Shield, Languages } from "lucide-react";
+import { User, LogOut, LayoutDashboard, Store, Shield, Languages } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export const Navbar = () => {
   const { user, roles, signOut } = useAuth();
@@ -25,9 +26,7 @@ export const Navbar = () => {
           to="/"
           className="flex items-center gap-2 font-display font-extrabold text-xl min-h-12"
         >
-          <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow">
-            <Ticket className="w-5 h-5 text-primary-foreground" />
-          </span>
+          <Logo className="w-9 h-9" />
           <span>
             Tikiti<span className="text-primary">MW</span>
           </span>

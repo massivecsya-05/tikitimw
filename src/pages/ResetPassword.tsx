@@ -6,7 +6,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Ticket } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const ResetPassword = () => {
   const nav = useNavigate();
@@ -41,9 +41,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-xl mb-8">
-          <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow">
-            <Ticket className="w-5 h-5 text-primary-foreground" />
-          </span>
+          <Logo className="w-9 h-9" />
           TikitiMW
         </Link>
         <h1 className="font-display font-bold text-3xl mb-2">Set a new password</h1>

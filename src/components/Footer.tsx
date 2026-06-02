@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Ticket } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 import { cn } from "@/lib/utils";
 
@@ -8,9 +8,7 @@ export const Footer = ({ className }: { className?: string }) => (
     <div className="container mx-auto px-4 py-14 grid md:grid-cols-4 gap-10">
       <div>
         <div className="flex items-center gap-2 font-display font-extrabold text-xl mb-3">
-          <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow">
-            <Ticket className="w-5 h-5 text-primary-foreground" />
-          </span>
+          <Logo className="w-9 h-9" />
           Tikiti<span className="text-primary">MW</span>
         </div>
         <p className="text-sm text-muted-foreground max-w-xs">
