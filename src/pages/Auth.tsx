@@ -65,7 +65,7 @@ const Auth = () => {
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-hero text-primary-foreground overflow-hidden">
         <div className="absolute -right-32 -bottom-32 w-96 h-96 rounded-full bg-accent/30 blur-3xl animate-float" />
         <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-2xl relative">
-          <span className="w-10 h-10 rounded-xl bg-background/20 backdrop-blur grid place-items-center"><Ticket className="w-6 h-6" /></span>
+          <Logo className="w-10 h-10 rounded-xl" />
           TikitiMW
         </Link>
         <div className="relative">
