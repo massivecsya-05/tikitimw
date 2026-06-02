@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Ticket, User, LogOut, LayoutDashboard, Store, Shield, Languages } from "lucide-react";
+import { User, LogOut, LayoutDashboard, Store, Shield, Languages } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export const Navbar = () => {
   const { user, roles, signOut } = useAuth();
