@@ -78,7 +78,7 @@ const Auth = () => {
       <div className="flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md">
           <Link to="/" className="lg:hidden flex items-center gap-2 font-display font-extrabold text-xl mb-8">
-            <span className="w-9 h-9 rounded-xl bg-gradient-hero grid place-items-center shadow-glow"><Ticket className="w-5 h-5 text-primary-foreground" /></span>
+            <Logo className="w-9 h-9" />
             TikitiMW
           </Link>
           <Tabs value={tab} onValueChange={setTab as any}>
