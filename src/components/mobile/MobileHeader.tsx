@@ -10,9 +10,7 @@ export const MobileHeader = () => {
     <header className="md:hidden sticky top-0 z-50 backdrop-blur-xl bg-background/75 border-b border-border/60">
       <div className="flex items-center justify-between h-14 px-4">
         <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-lg min-h-12">
-          <span className="w-8 h-8 rounded-lg bg-gradient-hero grid place-items-center">
-            <Ticket className="w-4 h-4 text-primary-foreground" />
-          </span>
+          <Logo className="w-8 h-8" />
           Tikiti<span className="text-primary">MW</span>
         </Link>
         <Button
