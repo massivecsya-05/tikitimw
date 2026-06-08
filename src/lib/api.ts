@@ -246,7 +246,21 @@ export async function initiatePayment(orderId: string, customerEmail: string, re
   const { data, error } = await supabase.functions.invoke("initiate-payment", {
     body: { order_id: orderId, customer_email: customerEmail, return_url: returnUrl },
   });
-  if (error) throw error;
+  if (error) {
+    // Try to extract the real error body from the edge function response
+    let detail: string | undefined;
+    try {
+      const resp = (error as { context?: { response?: Response } })?.context?.response;
+      if (resp) {
+        const body = await resp.clone().json().catch(() => null);
+        detail = body?.error || (body?.detail && JSON.stringify(body.detail));
+      }
+    } catch {
+      /* ignore */
+    }
+    console.error("initiate-payment failed", { error, detail });
+    throw new Error(detail || (error as Error).message || "Could not start payment");
+  }
   return data as { checkout_url?: string; error?: string };
 }
 
