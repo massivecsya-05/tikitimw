@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     if (tickets_only) return json({ ok: true, tickets_count: items.length });
 
     if (order.email_sent_at && !force) {
-      return json({ ok: true, skipped: "already sent", tickets_count: tickets.length });
+      return json({ ok: true, skipped: "already sent", tickets_count: items.length });
     }
 
     let to = order.customer_email;
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       const { data: u } = await admin.auth.admin.getUserById(order.customer_id);
       to = u?.user?.email ?? null;
     }
-    if (!to) return json({ ok: true, skipped: "no recipient email", tickets_count: tickets.length });
+    if (!to) return json({ ok: true, skipped: "no recipient email", tickets_count: items.length });
 
     // Build inline QR images
     const ticketBlocks: string[] = [];
