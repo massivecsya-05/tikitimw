@@ -130,7 +130,7 @@ const EventDetail = () => {
                 ) : (
                   <div className="space-y-2">
                     {tiers.map((tier) => {
-                      const sold = Number((tier as any).quantity_sold ?? tier.sold ?? 0);
+                      const sold = Number(tier.sold ?? 0);
                       const remainingQty = Math.max(0, tier.quantity - sold);
                       return (
                         <div key={tier.id} className="flex items-center justify-between text-sm">

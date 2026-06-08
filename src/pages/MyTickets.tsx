@@ -38,7 +38,7 @@ const MyTickets = () => {
       if (!paidOrders?.length) return;
 
       const { data: ticketOrders } = await supabase
-        .from("tickets")
+        .from("order_items")
         .select("order_id")
         .in(
           "order_id",

@@ -28,7 +28,7 @@ export interface EventFilters {
   search?: string;
 }
 
-type TierAgg = { event_id: string; price_mwk: number; quantity: number; sold: number; quantity_sold?: number | null };
+type TierAgg = { event_id: string; price_mwk: number; quantity: number; sold: number };
 
 export function enrichEventsWithTiers(
   events: Pick<EventRow, "id" | "title" | "city" | "venue" | "starts_at" | "banner_url" | "category" | "description">[],
@@ -48,7 +48,7 @@ export function enrichEventsWithTiers(
       const p = Number(t.price_mwk);
       if (minPrice === undefined || p < minPrice) minPrice = p;
       totalCapacity += t.quantity;
-      const sold = Number(t.quantity_sold ?? t.sold ?? 0);
+      const sold = Number(t.sold ?? 0);
       totalRemaining += Math.max(0, t.quantity - sold);
     });
     return {
@@ -72,23 +72,16 @@ export async function fetchPublishedEvents(limit?: number) {
   if (error) throw error;
   if (!events?.length) return [] as EventCardData[];
   const ids = events.map((e) => e.id);
-  let tiersRes = await supabase
+  const { data: tiers, error: tErr } = await supabase
     .from("ticket_tiers")
-    .select("event_id,price_mwk,quantity,sold,quantity_sold")
+    .select("event_id,price_mwk,quantity,sold")
     .in("event_id", ids);
-  if (tiersRes.error) {
-    tiersRes = await supabase
-      .from("ticket_tiers")
-      .select("event_id,price_mwk,quantity,sold")
-      .in("event_id", ids);
-  }
-  const { data: tiers, error: tErr } = tiersRes;
   if (tErr) throw tErr;
   return enrichEventsWithTiers(events, tiers ?? []);
 }
 
 export async function deleteEvent(eventId: string) {
-  const { error } = await supabase.rpc("delete_event", { p_event_id: eventId });
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
   if (error) throw error;
 }
 
@@ -173,9 +166,9 @@ export interface UserTicketItem {
 
 export async function fetchUserTickets(customerId: string): Promise<UserTicketItem[]> {
   const { data, error } = await supabase
-    .from("tickets")
+    .from("order_items")
     .select(
-      "id,order_id,qr_code,status,created_at,tier_id,orders!inner(id,customer_id,status,created_at,total_mwk),events(title,venue,city,starts_at,banner_url),ticket_tiers(name,price_mwk)",
+      "id,order_id,quantity,unit_price_mwk,qr_code,checked_in,created_at,tier_id,orders!inner(id,customer_id,status,created_at,total_mwk),events(title,venue,city,starts_at,banner_url),ticket_tiers(name,price_mwk)",
     )
     .eq("orders.customer_id", customerId)
     .eq("orders.status", "paid")
@@ -184,12 +177,12 @@ export async function fetchUserTickets(customerId: string): Promise<UserTicketIt
   return (data ?? []).map((row) => ({
     id: row.id,
     order_id: row.order_id,
-    quantity: 1,
+    quantity: row.quantity,
     unit_price_mwk: Number(
       (row.ticket_tiers as { price_mwk?: number } | null)?.price_mwk ?? row.orders?.total_mwk ?? 0,
     ),
-    qr_code: row.qr_code,
-    checked_in: row.status === "used",
+    qr_code: row.id,
+    checked_in: row.checked_in,
     created_at: row.created_at,
     tier_id: row.tier_id,
     events: row.events,
@@ -225,8 +218,6 @@ export async function createPendingOrder(params: {
       status: "pending",
       payment_method: params.paymentMethod,
       customer_email: params.customerEmail ?? null,
-      customer_name: params.customerName ?? null,
-      customer_phone: params.customerPhone ?? null,
     })
     .select()
     .single();
@@ -275,7 +266,7 @@ export async function ensureOrderTickets(orderId: string) {
 
 export async function submitVendorApplication(userId: string) {
   const { data, error } = await supabase
-    .from("vendor_applications")
+    .from("vendor_applications" as any)
     .insert({ user_id: userId, status: "pending" })
     .select("id")
     .single();

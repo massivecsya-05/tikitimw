@@ -57,6 +57,17 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethodValue = (typeof PAYMENT_METHODS)[number]["value"];
 
+export function detectMobileNetwork(phone: string): "tnm_mpamba" | "airtel_money" | null {
+  const digits = phone.replace(/\D/g, "");
+  const local = digits.startsWith("265") ? digits.slice(3) : digits;
+  const prefix = local.slice(0, 4);
+  if (["0881", "0882", "0883"].some((p) => local.startsWith(p))) return "tnm_mpamba";
+  if (["0999", "0977", "0888"].some((p) => local.startsWith(p))) return "airtel_money";
+  if (prefix.startsWith("088")) return "tnm_mpamba";
+  if (prefix.startsWith("099") || prefix.startsWith("097")) return "airtel_money";
+  return null;
+}
+
 export function getEventBadge(e: { min_price?: number; total_remaining: number; total_capacity: number }) {
   if (e.total_capacity > 0 && e.total_remaining === 0) return "sold_out" as const;
   if (e.min_price === 0) return "free" as const;

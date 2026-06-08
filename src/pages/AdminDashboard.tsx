@@ -63,7 +63,7 @@ const AdminDashboard = () => {
       supabase.functions.invoke("admin-users", { body: { action: "list" } }),
       supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
-      supabase.from("vendor_applications").select("*").eq("status", "pending").order("created_at", { ascending: true }),
+      supabase.from("vendor_applications" as any).select("*").eq("status", "pending").order("created_at", { ascending: true }),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
@@ -75,7 +75,7 @@ const AdminDashboard = () => {
     setAudit(auditData ?? []);
     setRecentOrders(orders?.slice(0, 8) ?? []);
     setPayouts(payoutsData ?? []);
-    setVendorApps(vendorAppsData ?? []);
+    setVendorApps((vendorAppsData as any[]) ?? []);
     if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
     setStats({

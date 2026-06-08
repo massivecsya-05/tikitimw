@@ -67,11 +67,11 @@ const VendorDashboard = () => {
     const ids = (ev ?? []).map(e => e.id);
     if (ids.length) {
       const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id,tier_id,created_at").in("event_id", ids);
-      const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,quantity_sold,price_mwk").in("event_id", ids);
-      const { data: ticketRows } = await supabase.from("tickets").select("status,event_id,created_at,tier_id").in("event_id", ids);
+      const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,price_mwk").in("event_id", ids);
+      const { data: ticketRows } = await supabase.from("order_items").select("id,checked_in,checked_in_at,event_id,created_at,tier_id").in("event_id", ids);
       const { data: orderRows } = await supabase
         .from("order_items")
-        .select("id,unit_price_mwk,event_id,orders!inner(id,customer_name,customer_email,status,created_at),ticket_tiers(name)")
+        .select("id,unit_price_mwk,event_id,orders!inner(id,customer_email,status,created_at),ticket_tiers(name)")
         .in("event_id", ids)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -84,11 +84,11 @@ const VendorDashboard = () => {
         e.revenue += Number(i.unit_price_mwk) * i.quantity;
       });
       const remaining = (tiersData ?? []).reduce((sum, t: any) => {
-        const soldQty = Number(t.quantity_sold ?? t.sold ?? 0);
+        const soldQty = Number(t.sold ?? 0);
         return sum + Math.max(0, Number(t.quantity) - soldQty);
       }, 0);
-      const used = (ticketRows ?? []).filter((t: any) => t.status === "used").length;
-      const validTickets = (ticketRows ?? []).filter((t: any) => t.status !== "cancelled").length;
+      const used = (ticketRows ?? []).filter((t: any) => t.checked_in).length;
+      const validTickets = ticketRows?.length ?? 0;
       const checkInRate = validTickets > 0 ? (used / validTickets) * 100 : 0;
 
       const byDay = new Map<string, { revenue: number; sold: number }>();
@@ -105,7 +105,7 @@ const VendorDashboard = () => {
 
       const breakdownByTier = new Map<string, TierBreakdown>();
       (tiersData ?? []).forEach((t: any) => {
-        const soldQty = Number(t.quantity_sold ?? t.sold ?? 0);
+        const soldQty = Number(t.sold ?? 0);
         const rem = Math.max(0, Number(t.quantity) - soldQty);
         breakdownByTier.set(t.id, {
           tier_id: t.id,
@@ -122,13 +122,19 @@ const VendorDashboard = () => {
       setTierBreakdown(Array.from(breakdownByTier.values()).sort((a, b) => b.revenue - a.revenue));
       setRecentOrders(orderRows ?? []);
 
-      const { data: logs } = await supabase
-        .from("scan_logs")
-        .select("id,result,scanned_at,event_id,ticket_id")
-        .in("event_id", ids)
-        .order("scanned_at", { ascending: false })
-        .limit(30);
-      setScanLogs(logs ?? []);
+      setScanLogs(
+        (ticketRows ?? [])
+          .filter((row: any) => row.checked_in)
+          .map((row: any) => ({
+            id: row.id,
+            result: "checked_in",
+            scanned_at: row.checked_in_at ?? row.created_at,
+            event_id: row.event_id,
+            ticket_id: row.id,
+          }))
+          .sort((a, b) => b.scanned_at.localeCompare(a.scanned_at))
+          .slice(0, 30),
+      );
     } else {
       setSales({});
       setStats({ revenue: 0, sold: 0, eventsCount: 0, remaining: 0, checkInRate: 0 });
@@ -421,7 +427,7 @@ const VendorDashboard = () => {
               <tbody>
                 {recentOrders.map((o: any) => (
                   <tr key={o.id} className="border-t border-border">
-                    <td className="p-3">{o.orders?.customer_name ?? o.orders?.customer_email ?? "Guest"}</td>
+                    <td className="p-3">{o.orders?.customer_email ?? "Guest"}</td>
                     <td className="p-3">{o.ticket_tiers?.name ?? "Tier"}</td>
                     <td className="p-3">{formatMWK(o.unit_price_mwk ?? 0)}</td>
                     <td className="p-3">{o.orders?.status}</td>
