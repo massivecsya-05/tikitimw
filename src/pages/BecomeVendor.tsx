@@ -43,7 +43,7 @@ const BecomeVendor = () => {
       .insert({ user_id: user.id, status: "pending" })
       .select("id")
       .single();
-    const app = appData as { id: string } | null;
+    const app = appData as unknown as { id: string } | null;
 
     if (error) {
       if (error.message.includes("duplicate") || error.code === "23505") {
