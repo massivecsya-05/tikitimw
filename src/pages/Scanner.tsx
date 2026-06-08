@@ -66,14 +66,14 @@ const Scanner = () => {
         setResult({ kind: "not_found" });
         return;
       }
-      const { data, error } = await supabase.rpc("scan_ticket", { p_ticket_id: code });
+      const { data, error } = await supabase.rpc("check_in", { p_order_item_id: code });
       if (error) throw error;
       const r = data as any;
-      if (r.status === "used_ok") {
+      if (r.status === "checked_in") {
         setResult({ kind: "ok", event_title: r.event_title, tier_name: r.tier_name, attendee_name: r.attendee_name });
         toast.success(`✓ ${r.attendee_name ?? "Guest"} — ${r.tier_name}`);
         setActiveQr({ code, title: r.event_title, tier: r.tier_name, checkedIn: true });
-      } else if (r.status === "already_used") {
+      } else if (r.status === "already_checked_in") {
         setResult({
           kind: "already",
           event_title: r.event_title,
@@ -81,7 +81,7 @@ const Scanner = () => {
           attendee_name: r.attendee_name,
         });
         setActiveQr({ code, title: r.event_title, tier: r.tier_name, checkedIn: true });
-      } else if (r.status === "unauthorized_event" || r.status === "wrong_event") {
+      } else if (r.status === "unauthorized") {
         setResult({ kind: "unauthorized" });
       } else {
         setResult({ kind: "not_found" });
@@ -103,6 +103,7 @@ const Scanner = () => {
         (decodedText) => {
           void submit(decodedText.trim());
         },
+        () => undefined,
       );
       setScanning(true);
     } catch (e: any) {

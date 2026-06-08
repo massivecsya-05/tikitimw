@@ -18,15 +18,16 @@ const BecomeVendor = () => {
     if (!user || roles.includes("vendor")) return;
     (async () => {
       const { data } = await supabase
-        .from("vendor_applications")
+        .from("vendor_applications" as any)
         .select("status")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!data) setAppStatus("none");
-      else if (data.status === "pending") setAppStatus("pending");
-      else if (data.status === "rejected") setAppStatus("rejected");
+      const latest = data as { status?: string } | null;
+      if (!latest) setAppStatus("none");
+      else if (latest.status === "pending") setAppStatus("pending");
+      else if (latest.status === "rejected") setAppStatus("rejected");
       else setAppStatus("none");
     })();
   }, [user, roles]);
@@ -38,7 +39,7 @@ const BecomeVendor = () => {
   const apply = async () => {
     setSubmitting(true);
     const { data: app, error } = await supabase
-      .from("vendor_applications")
+      .from("vendor_applications" as any)
       .insert({ user_id: user.id, status: "pending" })
       .select("id")
       .single();

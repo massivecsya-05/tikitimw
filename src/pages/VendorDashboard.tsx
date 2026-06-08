@@ -68,7 +68,7 @@ const VendorDashboard = () => {
     if (ids.length) {
       const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id,tier_id,created_at").in("event_id", ids);
       const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,price_mwk").in("event_id", ids);
-      const { data: ticketRows } = await supabase.from("order_items").select("checked_in,event_id,created_at,tier_id").in("event_id", ids);
+      const { data: ticketRows } = await supabase.from("order_items").select("id,checked_in,checked_in_at,event_id,created_at,tier_id").in("event_id", ids);
       const { data: orderRows } = await supabase
         .from("order_items")
         .select("id,unit_price_mwk,event_id,orders!inner(id,customer_email,status,created_at),ticket_tiers(name)")
@@ -122,13 +122,19 @@ const VendorDashboard = () => {
       setTierBreakdown(Array.from(breakdownByTier.values()).sort((a, b) => b.revenue - a.revenue));
       setRecentOrders(orderRows ?? []);
 
-      const { data: logs } = await supabase
-        .from("scan_logs")
-        .select("id,result,scanned_at,event_id,ticket_id")
-        .in("event_id", ids)
-        .order("scanned_at", { ascending: false })
-        .limit(30);
-      setScanLogs(logs ?? []);
+      setScanLogs(
+        (ticketRows ?? [])
+          .filter((row: any) => row.checked_in)
+          .map((row: any) => ({
+            id: row.id,
+            result: "checked_in",
+            scanned_at: row.checked_in_at ?? row.created_at,
+            event_id: row.event_id,
+            ticket_id: row.id,
+          }))
+          .sort((a, b) => b.scanned_at.localeCompare(a.scanned_at))
+          .slice(0, 30),
+      );
     } else {
       setSales({});
       setStats({ revenue: 0, sold: 0, eventsCount: 0, remaining: 0, checkInRate: 0 });
