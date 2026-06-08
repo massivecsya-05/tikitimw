@@ -81,7 +81,7 @@ export async function fetchPublishedEvents(limit?: number) {
 }
 
 export async function deleteEvent(eventId: string) {
-  const { error } = await supabase.rpc("delete_event", { p_event_id: eventId });
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
   if (error) throw error;
 }
 
@@ -181,7 +181,7 @@ export async function fetchUserTickets(customerId: string): Promise<UserTicketIt
     unit_price_mwk: Number(
       (row.ticket_tiers as { price_mwk?: number } | null)?.price_mwk ?? row.orders?.total_mwk ?? 0,
     ),
-    qr_code: row.qr_code,
+    qr_code: row.id,
     checked_in: row.checked_in,
     created_at: row.created_at,
     tier_id: row.tier_id,
@@ -266,7 +266,7 @@ export async function ensureOrderTickets(orderId: string) {
 
 export async function submitVendorApplication(userId: string) {
   const { data, error } = await supabase
-    .from("vendor_applications")
+    .from("vendor_applications" as any)
     .insert({ user_id: userId, status: "pending" })
     .select("id")
     .single();

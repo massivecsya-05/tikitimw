@@ -29,7 +29,7 @@ const PaymentCallback = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("id,qr_code,events(title,venue,city,starts_at)")
+        .select("id,events(title,venue,city,starts_at)")
         .eq("order_id", orderId!);
       if (error) throw error;
       return data ?? [];
@@ -127,7 +127,7 @@ const PaymentCallback = () => {
   }, [orderId, tries, failCode, queryClient]);
 
   useEffect(() => {
-    const code = items?.[0]?.qr_code;
+    const code = items?.[0]?.id;
     if (!code) return;
     if (code.startsWith("data:image")) {
       setQrUrl(code);
