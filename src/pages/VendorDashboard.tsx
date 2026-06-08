@@ -105,7 +105,7 @@ const VendorDashboard = () => {
 
       const breakdownByTier = new Map<string, TierBreakdown>();
       (tiersData ?? []).forEach((t: any) => {
-        const soldQty = Number(t.quantity_sold ?? t.sold ?? 0);
+        const soldQty = Number(t.sold ?? 0);
         const rem = Math.max(0, Number(t.quantity) - soldQty);
         breakdownByTier.set(t.id, {
           tier_id: t.id,
@@ -427,7 +427,7 @@ const VendorDashboard = () => {
               <tbody>
                 {recentOrders.map((o: any) => (
                   <tr key={o.id} className="border-t border-border">
-                    <td className="p-3">{o.orders?.customer_name ?? o.orders?.customer_email ?? "Guest"}</td>
+                    <td className="p-3">{o.orders?.customer_email ?? "Guest"}</td>
                     <td className="p-3">{o.ticket_tiers?.name ?? "Tier"}</td>
                     <td className="p-3">{formatMWK(o.unit_price_mwk ?? 0)}</td>
                     <td className="p-3">{o.orders?.status}</td>

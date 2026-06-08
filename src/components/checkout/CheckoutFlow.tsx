@@ -165,7 +165,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
           {step === 1 && (
             <div className="space-y-3">
               {tiers.map((tier) => {
-                const sold = Number((tier as any).quantity_sold ?? tier.sold ?? 0);
+                const sold = Number(tier.sold ?? 0);
                 const remaining = tier.quantity - sold;
                 const current = qty[tier.id] ?? 0;
                 return (
