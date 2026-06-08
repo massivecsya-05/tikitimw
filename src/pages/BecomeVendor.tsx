@@ -38,11 +38,12 @@ const BecomeVendor = () => {
 
   const apply = async () => {
     setSubmitting(true);
-    const { data: app, error } = await supabase
+    const { data: appData, error } = await supabase
       .from("vendor_applications" as any)
       .insert({ user_id: user.id, status: "pending" })
       .select("id")
       .single();
+    const app = appData as { id: string } | null;
 
     if (error) {
       if (error.message.includes("duplicate") || error.code === "23505") {
@@ -57,7 +58,7 @@ const BecomeVendor = () => {
     }
 
     const { error: notifyErr } = await supabase.functions.invoke("vendor-application", {
-      body: { action: "notify_admin", application_id: app.id },
+      body: { action: "notify_admin", application_id: app?.id },
     });
     if (notifyErr) console.warn("Admin notify failed:", notifyErr.message);
 
