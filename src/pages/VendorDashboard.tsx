@@ -67,11 +67,11 @@ const VendorDashboard = () => {
     const ids = (ev ?? []).map(e => e.id);
     if (ids.length) {
       const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id,tier_id,created_at").in("event_id", ids);
-      const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,quantity_sold,price_mwk").in("event_id", ids);
-      const { data: ticketRows } = await supabase.from("tickets").select("status,event_id,created_at,tier_id").in("event_id", ids);
+      const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,price_mwk").in("event_id", ids);
+      const { data: ticketRows } = await supabase.from("order_items").select("checked_in,event_id,created_at,tier_id").in("event_id", ids);
       const { data: orderRows } = await supabase
         .from("order_items")
-        .select("id,unit_price_mwk,event_id,orders!inner(id,customer_name,customer_email,status,created_at),ticket_tiers(name)")
+        .select("id,unit_price_mwk,event_id,orders!inner(id,customer_email,status,created_at),ticket_tiers(name)")
         .in("event_id", ids)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -84,11 +84,11 @@ const VendorDashboard = () => {
         e.revenue += Number(i.unit_price_mwk) * i.quantity;
       });
       const remaining = (tiersData ?? []).reduce((sum, t: any) => {
-        const soldQty = Number(t.quantity_sold ?? t.sold ?? 0);
+        const soldQty = Number(t.sold ?? 0);
         return sum + Math.max(0, Number(t.quantity) - soldQty);
       }, 0);
-      const used = (ticketRows ?? []).filter((t: any) => t.status === "used").length;
-      const validTickets = (ticketRows ?? []).filter((t: any) => t.status !== "cancelled").length;
+      const used = (ticketRows ?? []).filter((t: any) => t.checked_in).length;
+      const validTickets = ticketRows?.length ?? 0;
       const checkInRate = validTickets > 0 ? (used / validTickets) * 100 : 0;
 
       const byDay = new Map<string, { revenue: number; sold: number }>();

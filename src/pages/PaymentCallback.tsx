@@ -28,7 +28,7 @@ const PaymentCallback = () => {
     queryKey: ["order-tickets", orderId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tickets")
+        .from("order_items")
         .select("id,qr_code,events(title,venue,city,starts_at)")
         .eq("order_id", orderId!);
       if (error) throw error;
