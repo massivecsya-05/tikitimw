@@ -8,7 +8,7 @@ import { PageShell } from "@/components/PageShell";
 import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
-  AlertCircle, TrendingUp, Search, Crown, Store, UserCheck, ArrowUpRight,
+  TrendingUp, Search, Crown, Store, UserCheck,
   Eye, EyeOff, Trash2, Mail, Settings as SettingsIcon, Wallet, Save,
   ClipboardList, CheckCircle2, XCircle, Loader2,
 } from "lucide-react";
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit";
+type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings";
 
 const AdminDashboard = () => {
   const { user, roles, loading } = useAuth();
@@ -25,13 +25,12 @@ const AdminDashboard = () => {
   const [tab, setTab] = useState<Tab>("overview");
   const [dataLoading, setDataLoading] = useState(true);
   const [stats, setStats] = useState({
-    users: 0, events: 0, tickets: 0, revenue: 0,
+    users: 0, activeEvents: 0, tickets: 0, revenue: 0,
     pendingOrders: 0, paidOrders: 0, vendorsCount: 0, draftEvents: 0,
   });
   const [users, setUsers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
-  const [audit, setAudit] = useState<any[]>([]);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [paidTransactions, setPaidTransactions] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [payouts, setPayouts] = useState<any[]>([]);
   const [vendorApps, setVendorApps] = useState<any[]>([]);
@@ -48,7 +47,6 @@ const AdminDashboard = () => {
       { data: items },
       { data: rolesData },
       { data: orders },
-      { data: auditData },
       emailsRes,
       { data: payoutsData },
       { data: settingsData },
@@ -56,10 +54,9 @@ const AdminDashboard = () => {
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
-      supabase.from("order_items").select("quantity,unit_price_mwk"),
+      supabase.from("order_items").select("quantity,order_id"),
       supabase.from("user_roles").select("user_id,role"),
-      supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
-      supabase.from("order_audit_log").select("*").order("created_at", { ascending: false }).limit(40),
+      supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.functions.invoke("admin-users", { body: { action: "list" } }),
       supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
@@ -72,19 +69,22 @@ const AdminDashboard = () => {
     const enrichedUsers = (profiles ?? []).map((p) => ({ ...p, roles: rolesByUser[p.id] ?? [], email: emails[p.id] ?? "" }));
     setUsers(enrichedUsers);
     setEvents(ev ?? []);
-    setAudit(auditData ?? []);
-    setRecentOrders(orders?.slice(0, 8) ?? []);
     setPayouts(payoutsData ?? []);
     setVendorApps((vendorAppsData as any[]) ?? []);
     if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
+    const paid = (orders ?? []).filter((o) => o.status === "paid");
+    const paidOrderIds = new Set(paid.map((o) => o.id));
+    const paidItems = (items ?? []).filter((i) => paidOrderIds.has(i.order_id));
+
+    setPaidTransactions(paid);
     setStats({
       users: profiles?.length ?? 0,
-      events: ev?.length ?? 0,
-      tickets: items?.reduce((s, i) => s + i.quantity, 0) ?? 0,
-      revenue: items?.reduce((s, i) => s + Number(i.unit_price_mwk) * i.quantity, 0) ?? 0,
+      activeEvents: ev?.filter((e: any) => e.status === "published").length ?? 0,
+      tickets: paidItems.reduce((s, i) => s + Number(i.quantity), 0),
+      revenue: paid.reduce((s, o) => s + Number(o.total_mwk), 0),
       pendingOrders: orders?.filter((o) => o.status === "pending").length ?? 0,
-      paidOrders: orders?.filter((o) => o.status === "paid").length ?? 0,
+      paidOrders: paid.length,
       vendorsCount: enrichedUsers.filter((u) => u.roles.includes("vendor")).length,
       draftEvents: ev?.filter((e: any) => e.status === "draft").length ?? 0,
     });
@@ -249,7 +249,6 @@ const AdminDashboard = () => {
               {navItem("events", "All events", CalendarDays)}
               {navItem("payouts", "Vendor payouts", Wallet)}
               {navItem("settings", "Platform fees", SettingsIcon)}
-              {navItem("audit", "Audit log", AlertCircle)}
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 px-2">
               <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Quick links</div>
@@ -270,7 +269,6 @@ const AdminDashboard = () => {
                   {tab === "events" && "All events"}
                   {tab === "payouts" && "Vendor payouts"}
                   {tab === "settings" && "Platform fees"}
-                  {tab === "audit" && "Audit log"}
                 </h1>
               </div>
               <Badge className="bg-violet-600/20 text-violet-300 border border-violet-600/40">
@@ -285,7 +283,7 @@ const AdminDashboard = () => {
                   {[
                     { label: "Total revenue", value: formatMWK(stats.revenue), icon: DollarSign, accent: "from-violet-500 to-fuchsia-600" },
                     { label: "Tickets sold", value: stats.tickets, icon: Ticket, accent: "from-fuchsia-500 to-pink-600" },
-                    { label: "Events", value: stats.events, icon: CalendarDays, accent: "from-indigo-500 to-violet-600" },
+                    { label: "Active events", value: stats.activeEvents, icon: CalendarDays, accent: "from-indigo-500 to-violet-600" },
                     { label: "Users", value: stats.users, icon: Users, accent: "from-cyan-500 to-blue-600" },
                   ].map((s, i) => (
                     <div key={i} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
@@ -313,59 +311,96 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-                {/* Secondary metrics + recent orders */}
-                <div className="grid lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-1 space-y-3">
-                    {[
-                      { label: "Pending vendor apps", value: vendorApps.length, icon: ClipboardList, color: "text-amber-400" },
-                      { label: "Active vendors", value: stats.vendorsCount, icon: Store },
-                      { label: "Paid orders", value: stats.paidOrders, icon: UserCheck, color: "text-emerald-400" },
-                      { label: "Pending orders", value: stats.pendingOrders, icon: AlertCircle, color: "text-amber-400" },
-                      { label: "Draft events", value: stats.draftEvents, icon: TrendingUp, color: "text-slate-400" },
-                    ].map((m, i) => (
-                      <div key={i} className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
-                        <m.icon className={`w-4 h-4 ${(m as any).color ?? "text-violet-400"}`} />
-                        <div className="text-sm text-slate-300 flex-1">{m.label}</div>
-                        <div className="font-display font-bold">{m.value}</div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {[
+                    { label: "Pending vendor apps", value: vendorApps.length, icon: ClipboardList, color: "text-amber-400" },
+                    { label: "Active vendors", value: stats.vendorsCount, icon: Store },
+                    { label: "Completed transactions", value: stats.paidOrders, icon: UserCheck, color: "text-emerald-400" },
+                    { label: "Pending orders", value: stats.pendingOrders, icon: TrendingUp, color: "text-amber-400" },
+                    { label: "Draft events", value: stats.draftEvents, icon: CalendarDays, color: "text-slate-400" },
+                  ].map((m, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+                      <m.icon className={`w-4 h-4 ${(m as any).color ?? "text-violet-400"}`} />
+                      <div className="text-sm text-slate-300 flex-1">{m.label}</div>
+                      <div className="font-display font-bold">{m.value}</div>
+                    </div>
+                  ))}
+                </div>
 
-                  <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-                      <div className="font-display font-bold">Recent orders</div>
-                      <ArrowUpRight className="w-4 h-4 text-slate-500" />
+                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
+                    <div>
+                      <div className="font-display font-bold">Complete transaction log</div>
+                      <p className="text-xs text-slate-500 mt-0.5">Paid orders only — totals match revenue above</p>
                     </div>
-                    <div className="divide-y divide-slate-800">
-                      {recentOrders.length === 0 && (
-                        <div className="px-5 py-10 text-center text-sm text-slate-500">No orders yet.</div>
+                    <div className="text-sm font-display font-bold text-emerald-400">
+                      {formatMWK(stats.revenue)} · {paidTransactions.length} transactions
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-950/60 text-left text-slate-400 text-xs uppercase tracking-widest">
+                        <tr>
+                          <th className="p-4">Date</th>
+                          <th className="p-4">Order</th>
+                          <th className="p-4">Customer</th>
+                          <th className="p-4">Payment</th>
+                          <th className="p-4 text-right">Amount</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paidTransactions.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">
+                              No completed transactions yet.
+                            </td>
+                          </tr>
+                        )}
+                        {paidTransactions.map((o) => (
+                          <tr key={o.id} className="border-t border-slate-800">
+                            <td className="p-4 text-slate-400 whitespace-nowrap">
+                              {formatDate(o.paid_at ?? o.created_at)}
+                            </td>
+                            <td className="p-4 font-mono text-xs text-slate-500">{o.id.slice(0, 8)}</td>
+                            <td className="p-4 text-slate-300">
+                              <div className="truncate max-w-[200px]">{o.customer_name ?? "—"}</div>
+                              <div className="text-xs text-slate-500 truncate max-w-[200px]">
+                                {o.customer_email ?? o.customer_id.slice(0, 8)}
+                              </div>
+                            </td>
+                            <td className="p-4 text-slate-400 text-xs">
+                              {o.payment_method?.replace(/_/g, " ") ?? o.payment_provider ?? "—"}
+                            </td>
+                            <td className="p-4 text-right font-display font-bold">{formatMWK(o.total_mwk)}</td>
+                            <td className="p-4 text-right">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                                title="Resend ticket email"
+                                onClick={() => resendEmail(o.id)}
+                              >
+                                <Mail className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      {paidTransactions.length > 0 && (
+                        <tfoot>
+                          <tr className="border-t border-slate-700 bg-slate-950/40">
+                            <td colSpan={4} className="p-4 text-right text-xs uppercase tracking-widest text-slate-400 font-bold">
+                              Total ({paidTransactions.length} paid)
+                            </td>
+                            <td className="p-4 text-right font-display font-extrabold text-lg text-emerald-400">
+                              {formatMWK(stats.revenue)}
+                            </td>
+                            <td />
+                          </tr>
+                        </tfoot>
                       )}
-                      {recentOrders.map((o) => (
-                        <div key={o.id} className="px-5 py-3 flex items-center gap-3 text-sm">
-                          <div className="font-mono text-xs text-slate-500 w-20 truncate">{o.id.slice(0, 8)}</div>
-                          <div className="flex-1 text-slate-300 truncate">
-                            {o.customer_email ?? o.customer_id.slice(0, 8)}
-                          </div>
-                          <div
-                            className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
-                              o.status === "paid"
-                                ? "bg-emerald-500/15 text-emerald-400"
-                                : o.status === "pending"
-                                ? "bg-amber-500/15 text-amber-400"
-                                : "bg-slate-700/40 text-slate-400"
-                            }`}
-                          >
-                            {o.status}
-                          </div>
-                          <div className="font-display font-bold">{formatMWK(o.total_mwk)}</div>
-                          {o.status === "paid" && (
-                            <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800" title="Resend ticket email" onClick={() => resendEmail(o.id)}>
-                              <Mail className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    </table>
                   </div>
                 </div>
               </>
@@ -650,39 +685,6 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* AUDIT */}
-            {tab === "audit" && (
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
-                <div className="px-5 py-4 border-b border-slate-800 font-display font-bold">
-                  Latest activity
-                </div>
-                <div className="divide-y divide-slate-800">
-                  {audit.length === 0 && (
-                    <div className="px-5 py-10 text-center text-sm text-slate-500">No activity yet.</div>
-                  )}
-                  {audit.map((a) => (
-                    <div key={a.id} className="px-5 py-3 flex items-center gap-3 text-sm">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          a.action === "payment_confirmed"
-                            ? "bg-emerald-400"
-                            : a.action === "check_in"
-                            ? "bg-violet-400"
-                            : "bg-slate-500"
-                        }`}
-                      />
-                      <div className="font-mono text-[11px] text-slate-500 w-32">
-                        {new Date(a.created_at).toLocaleString()}
-                      </div>
-                      <div className="font-semibold text-slate-200 w-44">{a.action}</div>
-                      <div className="text-xs text-slate-400 truncate flex-1">
-                        order {a.order_id?.slice(0, 8)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </main>
         </div>
       </div>

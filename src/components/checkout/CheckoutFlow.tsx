@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Minus, Plus } from "lucide-react";
 import { formatMWK, PAYMENT_METHODS, paymentErrorMessage, type PaymentMethodValue } from "@/lib/format";
 import {
@@ -20,7 +19,7 @@ import type { User } from "@supabase/supabase-js";
 type Tier = Database["public"]["Tables"]["ticket_tiers"]["Row"];
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
-const STEPS = [1, 2, 3] as const;
+const STEPS = [1, 2] as const;
 
 interface CheckoutFlowProps {
   event: Event;
@@ -32,15 +31,13 @@ interface CheckoutFlowProps {
 export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
   const { t } = useLanguage();
   const nav = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [name, setName] = useState(user?.user_metadata?.full_name ?? "");
   const [phone, setPhone] = useState(user?.user_metadata?.phone ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [pay, setPay] = useState<PaymentMethodValue>("airtel_money");
   const [submitting, setSubmitting] = useState(false);
-  const [promptSentAt, setPromptSentAt] = useState<number | null>(null);
-  const [showResend, setShowResend] = useState(false);
   const MAX_TICKETS_PER_ORDER = 4;
 
   const total = tiers.reduce((sum, tier) => sum + (qty[tier.id] ?? 0) * Number(tier.price_mwk), 0);
@@ -50,12 +47,6 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
     const network = detectMobileNetwork(phone);
     if (network) setPay(network);
   }, [phone]);
-
-  useEffect(() => {
-    if (!promptSentAt) return;
-    const tmr = setTimeout(() => setShowResend(true), 30000);
-    return () => clearTimeout(tmr);
-  }, [promptSentAt]);
 
   const setQ = (id: string, n: number, max: number) => {
     setQty((p) => {
@@ -68,13 +59,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
     });
   };
 
-  const sortedMethods = [...PAYMENT_METHODS].sort((a, b) => {
-    if (a.value === pay) return -1;
-    if (b.value === pay) return 1;
-    return 0;
-  });
-
-  const goPay = async (isResend = false) => {
+  const goPay = async () => {
     if (!user) {
       nav(`/auth?redirect=/events/${event.id}`);
       return;
@@ -122,8 +107,6 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
       if (payData.error) throw new Error(paymentErrorMessage(payData.error));
       if (!payData.checkout_url) throw new Error("Could not start payment. Please try again.");
 
-      setPromptSentAt(Date.now());
-      if (!isResend) toast.message(t("checkout.prompt"));
       window.location.href = payData.checkout_url;
     } catch (e) {
       const msg = e instanceof Error ? e.message : paymentErrorMessage();
@@ -152,7 +135,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
               className={`h-1.5 rounded-full transition-colors ${step >= s ? "bg-primary" : "bg-muted"}`}
             />
             <p className={`text-[10px] mt-1 font-medium ${step === s ? "text-primary" : "text-muted-foreground"}`}>
-              {s === 1 ? t("checkout.step1") : s === 2 ? t("checkout.step2") : t("checkout.step3")}
+              {s === 1 ? t("checkout.step1") : t("checkout.step2")}
             </p>
           </div>
         ))}
@@ -231,7 +214,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                 />
               </div>
               <div>
-                <Label>Email {user.email ? "(for tickets)" : "(required)"}</Label>
+                <Label>Email {user?.email ? "(for tickets)" : "(required)"}</Label>
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -239,51 +222,15 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   required
                   className="h-12 mt-1"
                   inputMode="email"
-                  placeholder={user.email ?? "you@example.com"}
+                  placeholder={user?.email ?? "you@example.com"}
                 />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="min-h-12" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button variant="hero" className="flex-1 min-h-12" onClick={() => setStep(3)}>
-                  Continue to payment
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground bg-muted/50 rounded-xl p-4">{t("checkout.prompt")}</p>
-              <RadioGroup value={pay} onValueChange={(v) => setPay(v as PaymentMethodValue)} className="gap-2">
-                {sortedMethods.map((m) => (
-                  <Label
-                    key={m.value}
-                    htmlFor={m.value}
-                    className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer min-h-12 ${
-                      pay === m.value ? "border-primary bg-primary/5" : "border-border"
-                    }`}
-                  >
-                    <RadioGroupItem id={m.value} value={m.value} />
-                    <div>
-                      <div className="font-semibold">{m.label}</div>
-                      <div className="text-xs text-muted-foreground">{m.desc}</div>
-                    </div>
-                  </Label>
-                ))}
-              </RadioGroup>
-              {showResend && (
-                <Button variant="outline" className="w-full min-h-12" disabled={submitting} onClick={() => goPay(true)}>
-                  {t("checkout.resend")}
-                </Button>
-              )}
-              <div className="flex gap-2">
-                <Button variant="outline" className="min-h-12" onClick={() => setStep(2)}>
-                  Back
-                </Button>
                 <Button variant="hero" className="flex-1 min-h-12" disabled={submitting} onClick={() => goPay()}>
-                  {submitting ? "Processing…" : `${t("checkout.confirm")} ${formatMWK(total)}`}
+                  {submitting ? "Processing…" : `Pay ${formatMWK(total)}`}
                 </Button>
               </div>
             </div>
@@ -293,20 +240,14 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
       </div>
 
       <div className="lg:hidden fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border z-40 md:hidden">
-        {step < 3 ? (
-          <Button
-            variant="hero"
-            className="w-full min-h-12"
-            disabled={step === 1 && totalQty === 0}
-            onClick={() => setStep((step + 1) as 2 | 3)}
-          >
-            Continue · {formatMWK(total)}
-          </Button>
-        ) : (
-          <Button variant="hero" className="w-full min-h-12" disabled={submitting} onClick={() => goPay()}>
-            {t("checkout.confirm")} {formatMWK(total)}
-          </Button>
-        )}
+        <Button
+          variant="hero"
+          className="w-full min-h-12"
+          disabled={step === 1 ? totalQty === 0 : submitting}
+          onClick={() => step === 1 ? setStep(2) : goPay()}
+        >
+          {step === 1 ? `Continue · ${formatMWK(total)}` : submitting ? "Processing…" : `Pay ${formatMWK(total)}`}
+        </Button>
       </div>
     </div>
   );
