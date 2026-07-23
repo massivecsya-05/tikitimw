@@ -163,6 +163,8 @@ export type Database = {
           created_at: string
           customer_email: string | null
           customer_id: string
+          customer_name: string | null
+          customer_phone: string | null
           email_sent_at: string | null
           id: string
           paid_at: string | null
@@ -176,6 +178,8 @@ export type Database = {
           created_at?: string
           customer_email?: string | null
           customer_id: string
+          customer_name?: string | null
+          customer_phone?: string | null
           email_sent_at?: string | null
           id?: string
           paid_at?: string | null
@@ -189,6 +193,8 @@ export type Database = {
           created_at?: string
           customer_email?: string | null
           customer_id?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           email_sent_at?: string | null
           id?: string
           paid_at?: string | null
@@ -248,15 +254,64 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_logs: {
+        Row: {
+          event_id: string | null
+          id: string
+          raw_code: string | null
+          result: string
+          scanned_at: string
+          scanned_by: string | null
+          ticket_id: string | null
+        }
+        Insert: {
+          event_id?: string | null
+          id?: string
+          raw_code?: string | null
+          result: string
+          scanned_at?: string
+          scanned_by?: string | null
+          ticket_id?: string | null
+        }
+        Update: {
+          event_id?: string | null
+          id?: string
+          raw_code?: string | null
+          result?: string
+          scanned_at?: string
+          scanned_by?: string | null
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scan_logs_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_tiers: {
         Row: {
           created_at: string
           description: string | null
           event_id: string
           id: string
+          is_active: boolean
           name: string
           price_mwk: number
           quantity: number
+          quantity_sold: number
+          sale_end: string | null
+          sale_start: string | null
           sold: number
         }
         Insert: {
@@ -264,9 +319,13 @@ export type Database = {
           description?: string | null
           event_id: string
           id?: string
+          is_active?: boolean
           name: string
           price_mwk: number
           quantity: number
+          quantity_sold?: number
+          sale_end?: string | null
+          sale_start?: string | null
           sold?: number
         }
         Update: {
@@ -274,9 +333,13 @@ export type Database = {
           description?: string | null
           event_id?: string
           id?: string
+          is_active?: boolean
           name?: string
           price_mwk?: number
           quantity?: number
+          quantity_sold?: number
+          sale_end?: string | null
+          sale_start?: string | null
           sold?: number
         }
         Relationships: [
@@ -285,6 +348,67 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          buyer_email: string | null
+          buyer_name: string | null
+          buyer_phone: string | null
+          created_at: string
+          event_id: string
+          id: string
+          order_id: string
+          qr_code: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          tier_id: string
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          order_id: string
+          qr_code: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          tier_id: string
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          order_id?: string
+          qr_code?: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          tier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -380,6 +504,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      scan_ticket: {
+        Args: { p_event_id?: string; p_ticket_id: string }
+        Returns: Json
+      }
       vendor_owns_order: {
         Args: { _order_id: string; _vendor: string }
         Returns: boolean
@@ -399,6 +527,7 @@ export type Database = {
       order_status: "pending" | "paid" | "failed" | "refunded"
       payment_method: "airtel_money" | "tnm_mpamba" | "card" | "bank_transfer"
       payout_status: "pending" | "paid" | "cancelled"
+      ticket_status: "unused" | "used" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -540,6 +669,7 @@ export const Constants = {
       order_status: ["pending", "paid", "failed", "refunded"],
       payment_method: ["airtel_money", "tnm_mpamba", "card", "bank_transfer"],
       payout_status: ["pending", "paid", "cancelled"],
+      ticket_status: ["unused", "used", "cancelled"],
     },
   },
 } as const

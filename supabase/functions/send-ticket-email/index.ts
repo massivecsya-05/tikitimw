@@ -1,6 +1,7 @@
 // Sends ticket QR codes to the customer after a successful payment.
-// Uses Resend if RESEND_API_KEY is configured; otherwise logs and exits cleanly
-// so the rest of the checkout flow continues to work.
+// Also self-heals: if this order has no rows in `tickets` yet (e.g. paid
+// before the ticket-creation fix, or confirm_payment partially failed),
+// it creates them here before emailing, so the scanner always has a match.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import QRCode from "https://esm.sh/qrcode@1.5.4";
 
@@ -21,34 +22,56 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Load order + items + event/tier metadata
     const { data: order, error: oErr } = await admin
       .from("orders")
-      .select("id, customer_id, customer_email, total_mwk, status, email_sent_at")
+      .select("id, customer_id, customer_email, customer_name, customer_phone, total_mwk, status, email_sent_at")
       .eq("id", order_id)
       .single();
     if (oErr || !order) return json({ error: "order not found" }, 404);
     if (order.status !== "paid") return json({ ok: false, error: "order not paid yet" }, 422);
 
-    const { data: items } = await admin
+    const { data: orderItems } = await admin
       .from("order_items")
-      .select("id, qr_code, quantity, unit_price_mwk, tier_id, event_id")
+      .select("id, quantity, unit_price_mwk, tier_id, event_id")
       .eq("order_id", order_id);
-    if (!items || items.length === 0) return json({ ok: false, error: "no items" }, 422);
+    if (!orderItems || orderItems.length === 0) return json({ ok: false, error: "no items" }, 422);
 
-    const eventIds = [...new Set(items.map((i) => i.event_id))];
-    const tierIds = [...new Set(items.map((i) => i.tier_id))];
-    const [{ data: events }, { data: tiers }] = await Promise.all([
-      admin.from("events").select("id, title, venue, city, starts_at").in("id", eventIds),
-      admin.from("ticket_tiers").select("id, name").in("id", tierIds),
-    ]);
-    const eventMap = new Map((events ?? []).map((e) => [e.id, e]));
-    const tierMap = new Map((tiers ?? []).map((t) => [t.id, t]));
+    // Self-heal: ensure a `tickets` row exists per physical ticket unit.
+    const { data: existingTickets } = await admin
+      .from("tickets")
+      .select("id")
+      .eq("order_id", order_id);
 
-    if (tickets_only) return json({ ok: true, tickets_count: items.length });
+    if (!existingTickets || existingTickets.length === 0) {
+      const rowsToInsert = orderItems.flatMap((oi) =>
+        Array.from({ length: oi.quantity }, () => ({
+          order_id,
+          event_id: oi.event_id,
+          tier_id: oi.tier_id,
+          buyer_name: order.customer_name ?? null,
+          buyer_email: order.customer_email ?? null,
+          buyer_phone: order.customer_phone ?? null,
+          qr_code: "",
+          status: "unused" as const,
+        })),
+      );
+      const { error: insErr } = await admin.from("tickets").insert(rowsToInsert);
+      if (insErr) {
+        console.error("ticket_backfill_failed", insErr);
+        return json({ ok: false, error: "could not create tickets", detail: insErr.message }, 500);
+      }
+    }
+
+    const { data: tickets } = await admin
+      .from("tickets")
+      .select("id, event_id, tier_id")
+      .eq("order_id", order_id);
+    if (!tickets || tickets.length === 0) return json({ ok: false, error: "no tickets" }, 422);
+
+    if (tickets_only) return json({ ok: true, tickets_count: tickets.length });
 
     if (order.email_sent_at && !force) {
-      return json({ ok: true, skipped: "already sent", tickets_count: items.length });
+      return json({ ok: true, skipped: "already sent", tickets_count: tickets.length });
     }
 
     let to = order.customer_email;
@@ -56,14 +79,23 @@ Deno.serve(async (req) => {
       const { data: u } = await admin.auth.admin.getUserById(order.customer_id);
       to = u?.user?.email ?? null;
     }
-    if (!to) return json({ ok: true, skipped: "no recipient email", tickets_count: items.length });
+    if (!to) return json({ ok: true, skipped: "no recipient email", tickets_count: tickets.length });
 
-    // Build inline QR images
+    const eventIds = [...new Set(tickets.map((t) => t.event_id))];
+    const tierIds = [...new Set(tickets.map((t) => t.tier_id))];
+    const [{ data: events }, { data: tiers }] = await Promise.all([
+      admin.from("events").select("id, title, venue, city, starts_at").in("id", eventIds),
+      admin.from("ticket_tiers").select("id, name").in("id", tierIds),
+    ]);
+    const eventMap = new Map((events ?? []).map((e) => [e.id, e]));
+    const tierMap = new Map((tiers ?? []).map((t) => [t.id, t]));
+
     const ticketBlocks: string[] = [];
     const attachments: { filename: string; content: string }[] = [];
-    for (const tk of items) {
+    for (const tk of tickets) {
       const ev = eventMap.get(tk.event_id);
       const tier = tierMap.get(tk.tier_id);
+      // QR encodes the tickets.id — the exact value the gate scanner (scan_ticket) checks.
       const dataUrl = await QRCode.toDataURL(tk.id, { width: 320, margin: 1 });
       const cid = `qr-${tk.id}`;
       attachments.push({
