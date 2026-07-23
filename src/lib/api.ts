@@ -151,6 +151,7 @@ export interface UserTicketItem {
   unit_price_mwk: number;
   qr_code: string;
   checked_in: boolean;
+  status: "unused" | "used" | "cancelled";
   created_at: string;
   tier_id: string;
   events: {
@@ -161,28 +162,32 @@ export interface UserTicketItem {
     banner_url: string | null;
   } | null;
   orders: { id: string; customer_id: string; status: string; created_at: string };
-  ticket_tiers: { name: string } | null;
+  ticket_tiers: { name: string; price_mwk?: number } | null;
 }
 
+/**
+ * Reads from the `tickets` table — the same table the gate scanner (scan_ticket RPC)
+ * checks against — so what a customer sees in My Tickets always matches what will
+ * actually scan at the door. One row per physical ticket.
+ */
 export async function fetchUserTickets(customerId: string): Promise<UserTicketItem[]> {
   const { data, error } = await supabase
-    .from("order_items")
+    .from("tickets" as any)
     .select(
-      "id,order_id,quantity,unit_price_mwk,qr_code,checked_in,created_at,tier_id,orders!inner(id,customer_id,status,created_at,total_mwk),events(title,venue,city,starts_at,banner_url),ticket_tiers(name,price_mwk)",
+      "id,order_id,event_id,tier_id,status,created_at,orders!inner(id,customer_id,status,created_at),events(title,venue,city,starts_at,banner_url),ticket_tiers(name,price_mwk)",
     )
     .eq("orders.customer_id", customerId)
     .eq("orders.status", "paid")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map((row: any) => ({
     id: row.id,
     order_id: row.order_id,
-    quantity: row.quantity,
-    unit_price_mwk: Number(
-      (row.ticket_tiers as { price_mwk?: number } | null)?.price_mwk ?? row.orders?.total_mwk ?? 0,
-    ),
+    quantity: 1,
+    unit_price_mwk: Number(row.ticket_tiers?.price_mwk ?? 0),
     qr_code: row.id,
-    checked_in: row.checked_in,
+    checked_in: row.status === "used",
+    status: row.status,
     created_at: row.created_at,
     tier_id: row.tier_id,
     events: row.events,
@@ -238,7 +243,6 @@ export async function initiatePayment(orderId: string, customerEmail: string, re
     body: { order_id: orderId, customer_email: customerEmail, return_url: returnUrl },
   });
   if (error) {
-    // Try to extract the real error body from the edge function response
     let detail: string | undefined;
     try {
       const resp = (error as { context?: { response?: Response } })?.context?.response;

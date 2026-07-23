@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Ticket, Calendar, MapPin, Share2, Copy } from "lucide-react";
 import { toast } from "sonner";
+import QRCode from "qrcode";
+
+const TicketThumb = ({ ticketId }: { ticketId: string }) => {
+  const [dataUrl, setDataUrl] = useState("");
+  useEffect(() => {
+    QRCode.toDataURL(ticketId, { width: 128, margin: 1 }).then(setDataUrl).catch(() => {});
+  }, [ticketId]);
+  if (!dataUrl) return <div className="w-16 h-16 rounded border border-border bg-muted animate-pulse mt-2" />;
+  return <img src={dataUrl} alt="Ticket QR" className="w-16 h-16 rounded border border-border mt-2" />;
+};
 
 const MyTickets = () => {
   const { user, loading } = useAuth();
@@ -37,14 +47,13 @@ const MyTickets = () => {
         .eq("status", "paid");
       if (!paidOrders?.length) return;
 
-      const { data: ticketOrders } = await supabase
-        .from("order_items")
+      // Check against the `tickets` table (source of truth for scanning),
+      // not order_items — an order is only "missing tickets" if it has none there.
+      const { data: existingTickets } = await supabase
+        .from("tickets" as any)
         .select("order_id")
-        .in(
-          "order_id",
-          paidOrders.map((o) => o.id),
-        );
-      const withTickets = new Set((ticketOrders ?? []).map((t) => t.order_id));
+        .in("order_id", paidOrders.map((o) => o.id));
+      const withTickets = new Set((existingTickets ?? []).map((t: any) => t.order_id));
       let refreshed = false;
       for (const o of paidOrders) {
         if (withTickets.has(o.id)) continue;
@@ -138,14 +147,7 @@ const MyTickets = () => {
             </div>
             <div className="flex-1 p-4 flex flex-col">
               <h3 className="font-display font-bold leading-tight line-clamp-2">{it.events?.title}</h3>
-              {it.qr_code?.startsWith("data:image") && (
-                <img
-                  src={it.qr_code}
-                  alt="Ticket QR"
-                  className="w-16 h-16 rounded border border-border mt-2"
-                  loading="lazy"
-                />
-              )}
+              <TicketThumb ticketId={it.id} />
               <div className="text-sm text-muted-foreground mt-2 space-y-1 flex-1">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5" />
@@ -158,16 +160,9 @@ const MyTickets = () => {
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                 <span className="font-bold text-primary">{formatMWK(it.unit_price_mwk)}</span>
-                <div className="flex gap-2">
-                  {it.qr_code?.startsWith("data:image") && (
-                    <Button asChild size="sm" variant="outline" className="min-h-12">
-                      <a href={it.qr_code} download={`ticket-${it.id}.png`}>Download</a>
-                    </Button>
-                  )}
-                  <Button asChild size="sm" variant="hero" className="min-h-12">
-                    <Link to={`/my-tickets/${it.id}`}>View</Link>
-                  </Button>
-                </div>
+                <Button asChild size="sm" variant="hero" className="min-h-12">
+                  <Link to={`/my-tickets/${it.id}`}>View</Link>
+                </Button>
               </div>
             </div>
           </div>
