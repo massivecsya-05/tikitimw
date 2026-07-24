@@ -419,31 +419,62 @@ const AdminDashboard = () => {
                   <div className="divide-y divide-slate-800">
                     {vendorApps.map((app) => {
                       const u = users.find((x) => x.id === app.user_id);
+                      const Field = ({ label, value }: { label: string; value?: string | null }) => (
+                        <div>
+                          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{label}</div>
+                          <div className="text-sm text-slate-200 break-words">{value || "—"}</div>
+                        </div>
+                      );
                       return (
-                        <div key={app.id} className="px-5 py-4 flex flex-wrap items-center gap-4">
-                          <div className="flex-1 min-w-[200px]">
-                            <div className="font-semibold text-slate-100">{u?.full_name ?? "—"}</div>
-                            <div className="text-sm text-slate-400">{u?.email || app.user_id.slice(0, 8)}</div>
-                            <div className="text-xs text-slate-500 mt-1">Applied {formatDate(app.created_at)}</div>
+                        <div key={app.id} className="px-5 py-5 space-y-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div className="font-display font-bold text-slate-100 text-lg">
+                                {app.business_name || u?.full_name || "Unnamed vendor"}
+                              </div>
+                              <div className="text-sm text-slate-400">
+                                {u?.email || app.contact_email || app.user_id.slice(0, 8)}
+                              </div>
+                              <div className="text-xs text-slate-500 mt-1">
+                                Applied {formatDate(app.created_at)} · Type: {app.business_type ?? "—"}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                                disabled={reviewingApp === app.id}
+                                onClick={() => reviewVendorApp(app.id, true)}
+                              >
+                                <CheckCircle2 className="w-4 h-4" /> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
+                                disabled={reviewingApp === app.id}
+                                onClick={() => reviewVendorApp(app.id, false)}
+                              >
+                                <XCircle className="w-4 h-4" /> Reject
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                              disabled={reviewingApp === app.id}
-                              onClick={() => reviewVendorApp(app.id, true)}
-                            >
-                              <CheckCircle2 className="w-4 h-4" /> Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
-                              disabled={reviewingApp === app.id}
-                              onClick={() => reviewVendorApp(app.id, false)}
-                            >
-                              <XCircle className="w-4 h-4" /> Reject
-                            </Button>
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-950/40 border border-slate-800 rounded-xl p-4">
+                            <Field label="Contact person" value={app.contact_name} />
+                            <Field label="Phone" value={app.contact_phone} />
+                            <Field label="Email" value={app.contact_email} />
+                            <Field label="City" value={app.city} />
+                            <Field label="Address" value={app.address} />
+                            <Field label="Event types" value={app.event_types} />
+                            <Field label="Business reg #" value={app.registration_number} />
+                            <Field label="Tax ID / TPIN" value={app.tax_id} />
+                            <Field label="Website / social" value={app.website_or_social} />
+                            <Field label="ID document" value={app.id_document_type} />
+                            <Field label="ID number" value={app.id_number} />
+                            <div className="sm:col-span-2 lg:col-span-3">
+                              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Description</div>
+                              <p className="text-sm text-slate-200 whitespace-pre-wrap">{app.description || "—"}</p>
+                            </div>
                           </div>
                         </div>
                       );
