@@ -434,6 +434,84 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_applications: {
+        Row: {
+          address: string | null
+          agreed_to_terms: boolean
+          business_name: string
+          business_type: string
+          city: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          description: string
+          event_types: string | null
+          id: string
+          id_document_type: string | null
+          id_number: string | null
+          note: string | null
+          registration_number: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          tax_id: string | null
+          updated_at: string
+          user_id: string
+          website_or_social: string | null
+        }
+        Insert: {
+          address?: string | null
+          agreed_to_terms?: boolean
+          business_name: string
+          business_type: string
+          city: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          description: string
+          event_types?: string | null
+          id?: string
+          id_document_type?: string | null
+          id_number?: string | null
+          note?: string | null
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tax_id?: string | null
+          updated_at?: string
+          user_id: string
+          website_or_social?: string | null
+        }
+        Update: {
+          address?: string | null
+          agreed_to_terms?: boolean
+          business_name?: string
+          business_type?: string
+          city?: string
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          description?: string
+          event_types?: string | null
+          id?: string
+          id_document_type?: string | null
+          id_number?: string | null
+          note?: string | null
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tax_id?: string | null
+          updated_at?: string
+          user_id?: string
+          website_or_social?: string | null
+        }
+        Relationships: []
+      }
       vendor_payouts: {
         Row: {
           created_at: string
