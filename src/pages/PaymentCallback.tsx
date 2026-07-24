@@ -7,7 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertTriangle, Share2 } from "lucide-react";
 import { paymentErrorMessage } from "@/lib/format";
-import { clearPendingReferral, getPendingReferral, grantReferralReward, whatsappShareUrl } from "@/lib/referral";
+import { clearPendingReferral, getPendingReferral, grantReferralReward, ticketWhatsAppText, whatsappShareUrl } from "@/lib/referral";
+import { formatDate, formatTime } from "@/lib/format";
 import { useLanguage } from "@/contexts/LanguageContext";
 import QRCode from "qrcode";
 
