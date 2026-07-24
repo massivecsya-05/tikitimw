@@ -59,15 +59,23 @@ const TicketDetail = () => {
   }
 
   const shareWa = () => {
+    const phoneInput = window.prompt(
+      "Send ticket to WhatsApp number (with country code, e.g. 265991234567). Leave blank to choose a contact.",
+      (online as { orders?: { customer_phone?: string | null } } | undefined)?.orders?.customer_phone ?? "",
+    );
+    if (phoneInput === null) return;
     window.open(
       whatsappShareUrl(
-        eventWhatsAppText({
+        ticketWhatsAppText({
           title,
-          date: startsAt ? formatDate(startsAt) : "",
+          date: startsAt ? `${formatDate(startsAt)} · ${formatTime(startsAt)}` : "",
           venue,
           city,
+          tierName: online?.ticket_tiers?.name ?? undefined,
+          ticketId: id!,
           url: window.location.href,
         }),
+        phoneInput,
       ),
       "_blank",
     );
