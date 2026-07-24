@@ -5,7 +5,7 @@ import { PageShell } from "@/components/PageShell";
 import { fetchUserTickets } from "@/lib/api";
 import { getOfflineTicket } from "@/lib/tickets-storage";
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
-import { eventWhatsAppText, whatsappShareUrl } from "@/lib/referral";
+import { ticketWhatsAppText, whatsappShareUrl } from "@/lib/referral";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Download } from "lucide-react";
