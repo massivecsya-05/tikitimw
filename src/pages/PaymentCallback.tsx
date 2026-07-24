@@ -178,16 +178,31 @@ const PaymentCallback = () => {
               <Button asChild variant="hero" size="lg" className="min-h-12 w-full">
                 <Link to="/my-tickets">View my tickets</Link>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="min-h-12 w-full gap-2"
-                onClick={() =>
-                  window.open(whatsappShareUrl(`I just got my Tikiti ticket for ${ev?.title ?? "an event"}!`), "_blank")
-                }
-              >
-                <Share2 className="w-4 h-4" /> {t("confirm.share")}
-              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-h-12 w-full gap-2"
+                onClick={() => {
+                  const phoneInput = window.prompt(
+                    "Send ticket to WhatsApp number (with country code, e.g. 265991234567). Leave blank to pick a contact.",
+                    order?.customer_phone ?? "",
+                  );
+                  if (phoneInput === null || !first) return;
+                  const url = `${window.location.origin}/my-tickets/${first.id}`;
+                  const text = ticketWhatsAppText({
+                    title: ev?.title ?? "Event",
+                    date: ev?.starts_at ? `${formatDate(ev.starts_at)} · ${formatTime(ev.starts_at)}` : "",
+                    venue: ev?.venue ?? "",
+                    city: ev?.city ?? "",
+                    tierName: first.ticket_tiers?.name ?? undefined,
+                    ticketId: first.id,
+                    url,
+                  });
+                  window.open(whatsappShareUrl(text, phoneInput), "_blank");
+                }}
+              >
+                <Share2 className="w-4 h-4" /> Send ticket to WhatsApp
+              </Button>
             </div>
           </div>
         )}
