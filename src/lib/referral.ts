@@ -40,8 +40,10 @@ export function grantReferralReward(referrerCode: string) {
   localStorage.setItem("tikitimw_referral_rewards", JSON.stringify(rewards));
 }
 
-export function whatsappShareUrl(text: string) {
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+export function whatsappShareUrl(text: string, phone?: string | null) {
+  const digits = (phone ?? "").replace(/[^\d]/g, "");
+  const base = digits ? `https://wa.me/${digits}` : `https://wa.me/`;
+  return `${base}?text=${encodeURIComponent(text)}`;
 }
 
 export function eventWhatsAppText(params: {
@@ -52,4 +54,25 @@ export function eventWhatsAppText(params: {
   url: string;
 }) {
   return `Check out this event on Tikiti Malawi! ${params.title} on ${params.date} at ${params.venue}, ${params.city}. Book here: ${params.url}`;
+}
+
+export function ticketWhatsAppText(params: {
+  title: string;
+  date?: string;
+  venue?: string;
+  city?: string;
+  tierName?: string;
+  ticketId: string;
+  url: string;
+}) {
+  const lines = [
+    `🎟️ Your TikitiMW ticket`,
+    ``,
+    `Event: ${params.title}`,
+  ];
+  if (params.date) lines.push(`When: ${params.date}`);
+  if (params.venue || params.city) lines.push(`Where: ${[params.venue, params.city].filter(Boolean).join(", ")}`);
+  if (params.tierName) lines.push(`Tier: ${params.tierName}`);
+  lines.push(``, `Ticket ID: ${params.ticketId}`, `Open your QR: ${params.url}`);
+  return lines.join("\n");
 }

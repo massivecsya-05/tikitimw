@@ -5,7 +5,7 @@ import { PageShell } from "@/components/PageShell";
 import { fetchUserTickets } from "@/lib/api";
 import { getOfflineTicket } from "@/lib/tickets-storage";
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
-import { eventWhatsAppText, whatsappShareUrl } from "@/lib/referral";
+import { ticketWhatsAppText, whatsappShareUrl } from "@/lib/referral";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Download } from "lucide-react";
@@ -59,15 +59,23 @@ const TicketDetail = () => {
   }
 
   const shareWa = () => {
+    const phoneInput = window.prompt(
+      "Send ticket to WhatsApp number (with country code, e.g. 265991234567). Leave blank to choose a contact.",
+      (online as { orders?: { customer_phone?: string | null } } | undefined)?.orders?.customer_phone ?? "",
+    );
+    if (phoneInput === null) return;
     window.open(
       whatsappShareUrl(
-        eventWhatsAppText({
+        ticketWhatsAppText({
           title,
-          date: startsAt ? formatDate(startsAt) : "",
+          date: startsAt ? `${formatDate(startsAt)} · ${formatTime(startsAt)}` : "",
           venue,
           city,
+          tierName: online?.ticket_tiers?.name ?? undefined,
+          ticketId: id!,
           url: window.location.href,
         }),
+        phoneInput,
       ),
       "_blank",
     );

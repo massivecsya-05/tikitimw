@@ -7,7 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertTriangle, Share2 } from "lucide-react";
 import { paymentErrorMessage } from "@/lib/format";
-import { clearPendingReferral, getPendingReferral, grantReferralReward, whatsappShareUrl } from "@/lib/referral";
+import { clearPendingReferral, getPendingReferral, grantReferralReward, ticketWhatsAppText, whatsappShareUrl } from "@/lib/referral";
+import { formatDate, formatTime } from "@/lib/format";
 import { useLanguage } from "@/contexts/LanguageContext";
 import QRCode from "qrcode";
 
@@ -24,18 +25,31 @@ const PaymentCallback = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
 
-  const { data: items, isLoading: ticketsLoading } = useQuery({
-    queryKey: ["order-tickets", orderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  const { data: items, isLoading: ticketsLoading } = useQuery({
+    queryKey: ["order-tickets", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("order_items")
-        .select("id,events(title,venue,city,starts_at)")
-        .eq("order_id", orderId!);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: status === "paid" && !!orderId,
-  });
+        .select("id,events(title,venue,city,starts_at),ticket_tiers(name)")
+        .eq("order_id", orderId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: status === "paid" && !!orderId,
+  });
+
+  const { data: order } = useQuery({
+    queryKey: ["order-phone", orderId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("customer_phone")
+        .eq("id", orderId!)
+        .maybeSingle();
+      return data;
+    },
+    enabled: status === "paid" && !!orderId,
+  });
 
   useEffect(() => {
     if (status !== "paid" || !orderId || ticketsLoading || ensuringTickets) return;
@@ -164,16 +178,31 @@ const PaymentCallback = () => {
               <Button asChild variant="hero" size="lg" className="min-h-12 w-full">
                 <Link to="/my-tickets">View my tickets</Link>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="min-h-12 w-full gap-2"
-                onClick={() =>
-                  window.open(whatsappShareUrl(`I just got my Tikiti ticket for ${ev?.title ?? "an event"}!`), "_blank")
-                }
-              >
-                <Share2 className="w-4 h-4" /> {t("confirm.share")}
-              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-h-12 w-full gap-2"
+                onClick={() => {
+                  const phoneInput = window.prompt(
+                    "Send ticket to WhatsApp number (with country code, e.g. 265991234567). Leave blank to pick a contact.",
+                    order?.customer_phone ?? "",
+                  );
+                  if (phoneInput === null || !first) return;
+                  const url = `${window.location.origin}/my-tickets/${first.id}`;
+                  const text = ticketWhatsAppText({
+                    title: ev?.title ?? "Event",
+                    date: ev?.starts_at ? `${formatDate(ev.starts_at)} · ${formatTime(ev.starts_at)}` : "",
+                    venue: ev?.venue ?? "",
+                    city: ev?.city ?? "",
+                    tierName: first.ticket_tiers?.name ?? undefined,
+                    ticketId: first.id,
+                    url,
+                  });
+                  window.open(whatsappShareUrl(text, phoneInput), "_blank");
+                }}
+              >
+                <Share2 className="w-4 h-4" /> Send ticket to WhatsApp
+              </Button>
             </div>
           </div>
         )}
