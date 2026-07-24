@@ -25,18 +25,31 @@ const PaymentCallback = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
 
-  const { data: items, isLoading: ticketsLoading } = useQuery({
-    queryKey: ["order-tickets", orderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  const { data: items, isLoading: ticketsLoading } = useQuery({
+    queryKey: ["order-tickets", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("order_items")
-        .select("id,events(title,venue,city,starts_at)")
-        .eq("order_id", orderId!);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: status === "paid" && !!orderId,
-  });
+        .select("id,events(title,venue,city,starts_at),ticket_tiers(name)")
+        .eq("order_id", orderId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: status === "paid" && !!orderId,
+  });
+
+  const { data: order } = useQuery({
+    queryKey: ["order-phone", orderId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("customer_phone")
+        .eq("id", orderId!)
+        .maybeSingle();
+      return data;
+    },
+    enabled: status === "paid" && !!orderId,
+  });
 
   useEffect(() => {
     if (status !== "paid" || !orderId || ticketsLoading || ensuringTickets) return;
