@@ -279,6 +279,7 @@ const AdminDashboard = () => {
               {navItem("events", "All events", CalendarDays)}
               {navItem("payouts", "Vendor payouts", Wallet)}
               {navItem("settings", "Platform fees", SettingsIcon)}
+              {navItem("audit", "Activity log", Activity)}
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 px-2">
               <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Quick links</div>
