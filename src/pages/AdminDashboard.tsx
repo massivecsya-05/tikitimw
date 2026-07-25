@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings";
+type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit";
 
 const AdminDashboard = () => {
   const { user, roles, loading } = useAuth();
