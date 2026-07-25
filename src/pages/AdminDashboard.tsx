@@ -143,22 +143,48 @@ const AdminDashboard = () => {
     load();
   };
 
-  const removeEvent = async (id: string) => {
+  const removeEvent = async (id: string, label?: string) => {
     if (!confirm("Delete this event? Ticket and order line items for this event will be removed.")) return;
+    const t = toast.loading(`Deleting event ${label ?? id.slice(0, 8)}…`);
     try {
       await deleteEvent(id);
-      toast.success("Event deleted");
+      await supabase.from("admin_activity_log" as any).insert({
+        actor_id: user!.id,
+        actor_email: user!.email ?? null,
+        action: "event_deleted",
+        target_type: "event",
+        target_id: id,
+        target_label: label ?? id.slice(0, 8),
+      } as any);
+      toast.dismiss(t);
+      toast.success(`Event deleted: ${label ?? id.slice(0, 8)}`);
       load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not delete event");
+    } catch (e: any) {
+      toast.dismiss(t);
+      const raw = e?.message ?? String(e);
+      const friendly = /foreign key|violates/i.test(raw)
+        ? "Cannot delete this event — related tickets or orders still reference it."
+        : raw;
+      toast.error("Delete event failed", {
+        description: `${friendly}\nEvent ID: ${id.slice(0, 8)}`,
+      });
     }
   };
 
   const deleteUser = async (uid: string, label: string) => {
     if (!confirm(`Permanently delete user ${label}? This removes their account, profile, orders and tickets.`)) return;
+    const t = toast.loading(`Deleting user ${label}…`);
     const { data, error } = await supabase.functions.invoke("admin-users", { body: { action: "delete", user_id: uid } });
-    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error!.message);
-    toast.success("User deleted");
+    toast.dismiss(t);
+    const payload = (data as any) ?? {};
+    if (error || payload.error) {
+      const friendly = payload.error ?? error?.message ?? "Edge function returned a non-2xx status.";
+      const parts = [`User: ${label}`, `ID: ${uid.slice(0, 8)}`];
+      if (payload.raw_error && payload.raw_error !== friendly) parts.push(`Details: ${payload.raw_error}`);
+      toast.error("Delete user failed", { description: parts.join("\n") });
+      return;
+    }
+    toast.success(`User deleted: ${label}`);
     load();
   };
 
