@@ -300,6 +300,7 @@ const AdminDashboard = () => {
                   {tab === "events" && "All events"}
                   {tab === "payouts" && "Vendor payouts"}
                   {tab === "settings" && "Platform fees"}
+                  {tab === "audit" && "Admin activity log"}
                 </h1>
               </div>
               <Badge className="bg-violet-600/20 text-violet-300 border border-violet-600/40">
