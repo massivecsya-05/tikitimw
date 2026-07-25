@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings";
+type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit";
 
 const AdminDashboard = () => {
   const { user, roles, loading } = useAuth();
@@ -37,6 +37,7 @@ const AdminDashboard = () => {
   const [settingsRow, setSettingsRow] = useState<{ fee_percent: number; fee_flat_mwk: number }>({ fee_percent: 5, fee_flat_mwk: 200 });
   const [savingSettings, setSavingSettings] = useState(false);
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
 
   const load = async () => {
     setDataLoading(true);
@@ -51,6 +52,7 @@ const AdminDashboard = () => {
       { data: payoutsData },
       { data: settingsData },
       { data: vendorAppsData },
+      { data: auditData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
@@ -61,6 +63,7 @@ const AdminDashboard = () => {
       supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
       supabase.from("vendor_applications" as any).select("*").eq("status", "pending").order("created_at", { ascending: true }),
+      supabase.from("admin_activity_log" as any).select("*").order("created_at", { ascending: false }).limit(200),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
@@ -71,6 +74,7 @@ const AdminDashboard = () => {
     setEvents(ev ?? []);
     setPayouts(payoutsData ?? []);
     setVendorApps((vendorAppsData as any[]) ?? []);
+    setAuditLog((auditData as any[]) ?? []);
     if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
     const paid = (orders ?? []).filter((o) => o.status === "paid");
@@ -139,22 +143,48 @@ const AdminDashboard = () => {
     load();
   };
 
-  const removeEvent = async (id: string) => {
+  const removeEvent = async (id: string, label?: string) => {
     if (!confirm("Delete this event? Ticket and order line items for this event will be removed.")) return;
+    const t = toast.loading(`Deleting event ${label ?? id.slice(0, 8)}…`);
     try {
       await deleteEvent(id);
-      toast.success("Event deleted");
+      await supabase.from("admin_activity_log" as any).insert({
+        actor_id: user!.id,
+        actor_email: user!.email ?? null,
+        action: "event_deleted",
+        target_type: "event",
+        target_id: id,
+        target_label: label ?? id.slice(0, 8),
+      } as any);
+      toast.dismiss(t);
+      toast.success(`Event deleted: ${label ?? id.slice(0, 8)}`);
       load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not delete event");
+    } catch (e: any) {
+      toast.dismiss(t);
+      const raw = e?.message ?? String(e);
+      const friendly = /foreign key|violates/i.test(raw)
+        ? "Cannot delete this event — related tickets or orders still reference it."
+        : raw;
+      toast.error("Delete event failed", {
+        description: `${friendly}\nEvent ID: ${id.slice(0, 8)}`,
+      });
     }
   };
 
   const deleteUser = async (uid: string, label: string) => {
     if (!confirm(`Permanently delete user ${label}? This removes their account, profile, orders and tickets.`)) return;
+    const t = toast.loading(`Deleting user ${label}…`);
     const { data, error } = await supabase.functions.invoke("admin-users", { body: { action: "delete", user_id: uid } });
-    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error!.message);
-    toast.success("User deleted");
+    toast.dismiss(t);
+    const payload = (data as any) ?? {};
+    if (error || payload.error) {
+      const friendly = payload.error ?? error?.message ?? "Edge function returned a non-2xx status.";
+      const parts = [`User: ${label}`, `ID: ${uid.slice(0, 8)}`];
+      if (payload.raw_error && payload.raw_error !== friendly) parts.push(`Details: ${payload.raw_error}`);
+      toast.error("Delete user failed", { description: parts.join("\n") });
+      return;
+    }
+    toast.success(`User deleted: ${label}`);
     load();
   };
 
@@ -249,6 +279,7 @@ const AdminDashboard = () => {
               {navItem("events", "All events", CalendarDays)}
               {navItem("payouts", "Vendor payouts", Wallet)}
               {navItem("settings", "Platform fees", SettingsIcon)}
+              {navItem("audit", "Activity log", Activity)}
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 px-2">
               <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Quick links</div>
@@ -269,6 +300,7 @@ const AdminDashboard = () => {
                   {tab === "events" && "All events"}
                   {tab === "payouts" && "Vendor payouts"}
                   {tab === "settings" && "Platform fees"}
+                  {tab === "audit" && "Admin activity log"}
                 </h1>
               </div>
               <Badge className="bg-violet-600/20 text-violet-300 border border-violet-600/40">
@@ -621,7 +653,7 @@ const AdminDashboard = () => {
                       size="icon"
                       variant="ghost"
                       className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                      onClick={() => removeEvent(ev.id)}
+                      onClick={() => removeEvent(ev.id, ev.title)}
                     >
                       <Trash2 className="w-4 h-4"/>
                     </Button>
@@ -715,6 +747,69 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
+
+            {/* AUDIT LOG */}
+            {tab === "audit" && (
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-display font-bold">Admin activity log</div>
+                    <p className="text-xs text-slate-500 mt-0.5">Latest 200 admin actions — user deletions, event deletions and more.</p>
+                  </div>
+                  <div className="text-xs text-slate-500">{auditLog.length} entries</div>
+                </div>
+                {auditLog.length === 0 ? (
+                  <div className="px-5 py-16 text-center text-sm text-slate-500">No admin actions recorded yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-950/60 text-left text-slate-400 text-xs uppercase tracking-widest">
+                        <tr>
+                          <th className="p-4">When</th>
+                          <th className="p-4">Admin</th>
+                          <th className="p-4">Action</th>
+                          <th className="p-4">Target</th>
+                          <th className="p-4">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLog.map((row) => {
+                          const failed = String(row.action).endsWith("_failed");
+                          return (
+                            <tr key={row.id} className="border-t border-slate-800 align-top">
+                              <td className="p-4 text-slate-400 whitespace-nowrap">{formatDate(row.created_at)}</td>
+                              <td className="p-4 text-slate-300">
+                                <div className="truncate max-w-[220px]">{row.actor_email ?? "—"}</div>
+                                <div className="text-xs text-slate-500 font-mono">{row.actor_id?.slice(0, 8) ?? "—"}</div>
+                              </td>
+                              <td className="p-4">
+                                <Badge className={failed
+                                  ? "bg-rose-500/15 text-rose-300 border border-rose-500/40"
+                                  : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"}>
+                                  {String(row.action).replace(/_/g, " ")}
+                                </Badge>
+                              </td>
+                              <td className="p-4 text-slate-300">
+                                <div className="truncate max-w-[220px]">{row.target_label ?? row.target_id ?? "—"}</div>
+                                <div className="text-xs text-slate-500 font-mono">
+                                  {row.target_type ?? "—"} · {row.target_id?.slice(0, 8) ?? "—"}
+                                </div>
+                              </td>
+                              <td className="p-4 text-xs text-slate-400 font-mono">
+                                {row.details && Object.keys(row.details).length > 0
+                                  ? <pre className="whitespace-pre-wrap max-w-[280px]">{JSON.stringify(row.details, null, 0)}</pre>
+                                  : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
 
           </main>
         </div>
