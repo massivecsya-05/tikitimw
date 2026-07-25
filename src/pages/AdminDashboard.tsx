@@ -52,6 +52,7 @@ const AdminDashboard = () => {
       { data: payoutsData },
       { data: settingsData },
       { data: vendorAppsData },
+      { data: auditData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
@@ -62,6 +63,7 @@ const AdminDashboard = () => {
       supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
       supabase.from("vendor_applications" as any).select("*").eq("status", "pending").order("created_at", { ascending: true }),
+      supabase.from("admin_activity_log" as any).select("*").order("created_at", { ascending: false }).limit(200),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
