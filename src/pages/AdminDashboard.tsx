@@ -74,6 +74,7 @@ const AdminDashboard = () => {
     setEvents(ev ?? []);
     setPayouts(payoutsData ?? []);
     setVendorApps((vendorAppsData as any[]) ?? []);
+    setAuditLog((auditData as any[]) ?? []);
     if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
     const paid = (orders ?? []).filter((o) => o.status === "paid");
