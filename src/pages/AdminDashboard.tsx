@@ -651,7 +651,7 @@ const AdminDashboard = () => {
                       size="icon"
                       variant="ghost"
                       className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                      onClick={() => removeEvent(ev.id)}
+                      onClick={() => removeEvent(ev.id, ev.title)}
                     >
                       <Trash2 className="w-4 h-4"/>
                     </Button>
