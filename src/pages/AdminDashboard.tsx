@@ -37,6 +37,7 @@ const AdminDashboard = () => {
   const [settingsRow, setSettingsRow] = useState<{ fee_percent: number; fee_flat_mwk: number }>({ fee_percent: 5, fee_flat_mwk: 200 });
   const [savingSettings, setSavingSettings] = useState(false);
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
 
   const load = async () => {
     setDataLoading(true);
