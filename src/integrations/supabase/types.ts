@@ -27,7 +27,7 @@ export type Database = {
           status: Database["public"]["Enums"]["event_status"]
           title: string
           updated_at: string
-          vendor_id: string
+          vendor_id: string | null
           venue: string
         }
         Insert: {
@@ -42,7 +42,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["event_status"]
           title: string
           updated_at?: string
-          vendor_id: string
+          vendor_id?: string | null
           venue: string
         }
         Update: {
@@ -57,7 +57,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
           updated_at?: string
-          vendor_id?: string
+          vendor_id?: string | null
           venue?: string
         }
         Relationships: []
@@ -102,7 +102,7 @@ export type Database = {
           checked_in: boolean
           checked_in_at: string | null
           created_at: string
-          event_id: string
+          event_id: string | null
           id: string
           order_id: string
           qr_code: string
@@ -114,7 +114,7 @@ export type Database = {
           checked_in?: boolean
           checked_in_at?: string | null
           created_at?: string
-          event_id: string
+          event_id?: string | null
           id?: string
           order_id: string
           qr_code?: string
@@ -126,7 +126,7 @@ export type Database = {
           checked_in?: boolean
           checked_in_at?: string | null
           created_at?: string
-          event_id?: string
+          event_id?: string | null
           id?: string
           order_id?: string
           qr_code?: string
@@ -526,7 +526,7 @@ export type Database = {
           paid_at: string | null
           status: Database["public"]["Enums"]["payout_status"]
           tickets_count: number
-          vendor_id: string
+          vendor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -541,7 +541,7 @@ export type Database = {
           paid_at?: string | null
           status?: Database["public"]["Enums"]["payout_status"]
           tickets_count: number
-          vendor_id: string
+          vendor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -556,7 +556,7 @@ export type Database = {
           paid_at?: string | null
           status?: Database["public"]["Enums"]["payout_status"]
           tickets_count?: number
-          vendor_id?: string
+          vendor_id?: string | null
         }
         Relationships: []
       }
