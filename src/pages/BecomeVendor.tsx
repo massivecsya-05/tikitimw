@@ -76,7 +76,9 @@ const BecomeVendor = () => {
   });
 
   useEffect(() => {
-    if (!user || roles.includes("vendor")) return;
+    if (loading) return;
+    if (!user) { setAppStatus("none"); return; }
+    if (roles.includes("vendor")) { setAppStatus("none"); return; }
     (async () => {
       const { data: profile } = await supabase
         .from("profiles")
@@ -103,11 +105,12 @@ const BecomeVendor = () => {
       else if (latest.status === "rejected") setAppStatus("rejected");
       else setAppStatus("none");
     })();
-  }, [user, roles]);
+  }, [user, roles, loading]);
 
-  if (loading || appStatus === "loading") return null;
+  if (loading) return null;
   if (!user) return <Navigate to="/auth?mode=signup&redirect=/become-vendor" />;
   if (roles.includes("vendor")) return <Navigate to="/vendor" />;
+  if (appStatus === "loading") return null;
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
