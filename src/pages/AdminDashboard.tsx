@@ -748,6 +748,69 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {/* AUDIT LOG */}
+            {tab === "audit" && (
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-display font-bold">Admin activity log</div>
+                    <p className="text-xs text-slate-500 mt-0.5">Latest 200 admin actions — user deletions, event deletions and more.</p>
+                  </div>
+                  <div className="text-xs text-slate-500">{auditLog.length} entries</div>
+                </div>
+                {auditLog.length === 0 ? (
+                  <div className="px-5 py-16 text-center text-sm text-slate-500">No admin actions recorded yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-950/60 text-left text-slate-400 text-xs uppercase tracking-widest">
+                        <tr>
+                          <th className="p-4">When</th>
+                          <th className="p-4">Admin</th>
+                          <th className="p-4">Action</th>
+                          <th className="p-4">Target</th>
+                          <th className="p-4">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLog.map((row) => {
+                          const failed = String(row.action).endsWith("_failed");
+                          return (
+                            <tr key={row.id} className="border-t border-slate-800 align-top">
+                              <td className="p-4 text-slate-400 whitespace-nowrap">{formatDate(row.created_at)}</td>
+                              <td className="p-4 text-slate-300">
+                                <div className="truncate max-w-[220px]">{row.actor_email ?? "—"}</div>
+                                <div className="text-xs text-slate-500 font-mono">{row.actor_id?.slice(0, 8) ?? "—"}</div>
+                              </td>
+                              <td className="p-4">
+                                <Badge className={failed
+                                  ? "bg-rose-500/15 text-rose-300 border border-rose-500/40"
+                                  : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"}>
+                                  {String(row.action).replace(/_/g, " ")}
+                                </Badge>
+                              </td>
+                              <td className="p-4 text-slate-300">
+                                <div className="truncate max-w-[220px]">{row.target_label ?? row.target_id ?? "—"}</div>
+                                <div className="text-xs text-slate-500 font-mono">
+                                  {row.target_type ?? "—"} · {row.target_id?.slice(0, 8) ?? "—"}
+                                </div>
+                              </td>
+                              <td className="p-4 text-xs text-slate-400 font-mono">
+                                {row.details && Object.keys(row.details).length > 0
+                                  ? <pre className="whitespace-pre-wrap max-w-[280px]">{JSON.stringify(row.details, null, 0)}</pre>
+                                  : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+
           </main>
         </div>
       </div>
