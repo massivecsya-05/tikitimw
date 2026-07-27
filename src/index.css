@@ -1,0 +1,138 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tikiti Malawi — Vibrant Afro-modern design system. All colors HSL. */
+
+@layer base {
+  @media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  :root {
+    --background: 30 35% 97%;
+    --foreground: 20 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 20% 10%;
+
+    /* Malawi-inspired: warm refined crimson red */
+    --primary: 355 68% 46%;
+    --primary-foreground: 40 40% 98%;
+    --primary-glow: 16 88% 56%;
+
+    /* Emerald green — now supporting/success role */
+    --secondary: 150 42% 26%;
+    --secondary-foreground: 40 40% 98%;
+
+    --muted: 30 20% 94%;
+    --muted-foreground: 20 10% 40%;
+
+    /* Gold — hero accent, drives CTAs */
+    --accent: 40 95% 54%;
+    --accent-foreground: 20 30% 12%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 40 40% 98%;
+
+    --border: 30 15% 88%;
+    --input: 30 15% 90%;
+    --ring: 40 95% 54%;
+
+    --radius: 0.875rem;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(355 68% 46%) 0%, hsl(16 88% 54%) 45%, hsl(40 95% 54%) 100%);
+    --gradient-sunset: linear-gradient(180deg, hsl(16 88% 54% / 0.9), hsl(355 68% 32% / 0.95));
+    --gradient-emerald: linear-gradient(135deg, hsl(150 42% 26%), hsl(160 55% 34%));
+    --gradient-gold: linear-gradient(135deg, hsl(40 95% 54%), hsl(34 96% 62%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(30 25% 97%));
+
+    /* Shadows */
+    --shadow-glow: 0 20px 60px -20px hsl(355 68% 46% / 0.45);
+    --shadow-gold: 0 12px 40px -12px hsl(40 95% 54% / 0.55);
+    --shadow-soft: 0 8px 30px -10px hsl(20 20% 10% / 0.12);
+    --shadow-card: 0 2px 8px hsl(20 20% 10% / 0.04), 0 12px 32px -8px hsl(20 20% 10% / 0.08);
+
+    /* Motion */
+    --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+
+    --sidebar-background: 20 25% 8%;
+    --sidebar-foreground: 30 20% 88%;
+    --sidebar-primary: 355 68% 52%;
+    --sidebar-primary-foreground: 40 40% 98%;
+    --sidebar-accent: 20 20% 14%;
+    --sidebar-accent-foreground: 40 95% 58%;
+    --sidebar-border: 20 20% 16%;
+    --sidebar-ring: 40 95% 58%;
+  }
+
+  .dark {
+    --background: 20 25% 6%;
+    --foreground: 30 20% 95%;
+    --card: 20 25% 9%;
+    --card-foreground: 30 20% 95%;
+    --popover: 20 25% 9%;
+    --popover-foreground: 30 20% 95%;
+    --primary: 355 72% 56%;
+    --primary-foreground: 40 40% 98%;
+    --primary-glow: 16 92% 60%;
+    --secondary: 150 38% 32%;
+    --secondary-foreground: 40 40% 98%;
+    --muted: 20 20% 14%;
+    --muted-foreground: 30 15% 65%;
+    --accent: 40 95% 60%;
+    --accent-foreground: 20 30% 10%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 40 40% 98%;
+    --border: 20 20% 18%;
+    --input: 20 20% 16%;
+    --ring: 40 95% 60%;
+    --gradient-card: linear-gradient(180deg, hsl(20 25% 11%), hsl(20 25% 8%));
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4 { font-family: 'Bricolage Grotesque', 'Space Grotesk', system-ui, sans-serif; letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  .bg-gradient-hero { background: var(--gradient-hero); }
+  .bg-gradient-sunset { background: var(--gradient-sunset); }
+  .bg-gradient-emerald { background: var(--gradient-emerald); }
+  .bg-gradient-gold { background: var(--gradient-gold); }
+  .bg-gradient-card { background: var(--gradient-card); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-gold { box-shadow: var(--shadow-gold); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .text-gradient { background: var(--gradient-hero); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .transition-smooth { transition: all 0.4s var(--transition-smooth); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-fade-up { animation: fade-up 0.7s var(--transition-smooth) both; }
