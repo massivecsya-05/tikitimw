@@ -24,6 +24,7 @@ const Auth = () => {
   const initialMode = params.get("mode") === "signup" ? "signup" : "signin";
   const [tab, setTab] = useState(initialMode);
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,7 +37,6 @@ const Auth = () => {
     const { data, error } = await supabase.auth.signInWithPassword({ email: ev.data, password: pv.data });
     if (error) { setLoading(false); return toast.error(error.message); }
 
-    // Check role immediately (auth context roles load async) so admins skip the public site.
     let destination = redirect;
     if (data.user) {
       const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
@@ -52,6 +52,10 @@ const Auth = () => {
 
   const signUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!agreedToTerms) {
+      toast.error("Please agree to the Terms of Service and Privacy Policy to continue");
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     const name = fd.get("name") as string;
     const email = fd.get("email") as string;
@@ -122,7 +126,25 @@ const Auth = () => {
                 <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
                 <div><Label>Phone (optional)</Label><Input name="phone" placeholder="+265..." className="h-11" /></div>
                 <div><Label>Password</Label><PasswordInput name="password" required minLength={6} className="h-11" /></div>
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : t("auth.signUp")}</Button>
+                <div className="flex items-start gap-2.5 pt-1">
+                  <Checkbox
+                    id="agree-terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(v) => setAgreedToTerms(v === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="agree-terms" className="text-sm font-normal text-muted-foreground leading-snug cursor-pointer">
+                    I agree to the{" "}
+                    <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy" target="_blank" className="text-primary hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </Label>
+                </div>
+                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || !agreedToTerms}>{loading ? "..." : t("auth.signUp")}</Button>
               </form>
             </TabsContent>
           </Tabs>
