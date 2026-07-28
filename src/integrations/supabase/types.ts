@@ -611,6 +611,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_home_stats: {
+        Args: never
+        Returns: {
+          events_hosted: number
+          organisers: number
+          tickets_sold: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
