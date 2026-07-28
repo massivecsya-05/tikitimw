@@ -611,6 +611,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_event: { Args: { p_event_id: string }; Returns: undefined }
       get_home_stats: {
         Args: never
         Returns: {
