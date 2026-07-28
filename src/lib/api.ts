@@ -196,6 +196,26 @@ export async function fetchUserTickets(customerId: string): Promise<UserTicketIt
   }));
 }
 
+export interface HomeStats {
+  ticketsSold: number;
+  eventsHosted: number;
+  organisers: number;
+}
+
+/** Public homepage stats \u2014 backed by the get_home_stats() RPC, which is
+ * SECURITY DEFINER so it can aggregate across all orders/events safely
+ * without exposing any row-level data to anonymous visitors. */
+export async function fetchHomeStats(): Promise<HomeStats> {
+  const { data, error } = await supabase.rpc("get_home_stats" as any);
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    ticketsSold: Number(row?.tickets_sold ?? 0),
+    eventsHosted: Number(row?.events_hosted ?? 0),
+    organisers: Number(row?.organisers ?? 0),
+  };
+}
+
 export { detectMobileNetwork } from "@/lib/format";
 
 export async function createPendingOrder(params: {
@@ -268,3 +288,4 @@ export async function submitVendorApplication(userId: string) {
   if (error) throw error;
   return data;
 }
+

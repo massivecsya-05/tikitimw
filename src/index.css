@@ -136,3 +136,7 @@
 }
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-fade-up { animation: fade-up 0.7s var(--transition-smooth) both; }
+
+.safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+

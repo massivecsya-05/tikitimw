@@ -1,8 +1,12 @@
+﻿import { useHomeStats } from "@/hooks/useEvents";
+
 export const StatsBar = () => {
+  const { data, isLoading } = useHomeStats();
+
   const stats = [
-    { value: "2,400+", label: "Tickets sold" },
-    { value: "50+", label: "Events hosted" },
-    { value: "30+", label: "Organisers" },
+    { value: isLoading ? "\u2014" : `${(data?.ticketsSold ?? 0).toLocaleString()}+`, label: "Tickets sold" },
+    { value: isLoading ? "\u2014" : `${data?.eventsHosted ?? 0}+`, label: "Events hosted" },
+    { value: isLoading ? "\u2014" : `${data?.organisers ?? 0}+`, label: "Organisers" },
   ];
 
   return (
