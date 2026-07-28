@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,9 +66,23 @@ const VendorDashboard = () => {
     setEvents(ev ?? []);
     const ids = (ev ?? []).map(e => e.id);
     if (ids.length) {
-      const { data: items } = await supabase.from("order_items").select("quantity,unit_price_mwk,event_id,tier_id,created_at").in("event_id", ids);
+      // Only paid orders count toward revenue/sold \u2014 pending/failed/abandoned checkouts must never
+      // show up as real sales. order_items has no status of its own, so we filter via the parent order.
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("quantity,unit_price_mwk,event_id,tier_id,created_at,orders!inner(status)")
+        .in("event_id", ids)
+        .eq("orders.status", "paid");
       const { data: tiersData } = await supabase.from("ticket_tiers").select("id,event_id,name,quantity,sold,price_mwk").in("event_id", ids);
-      const { data: ticketRows } = await supabase.from("order_items").select("id,checked_in,checked_in_at,event_id,created_at,tier_id").in("event_id", ids);
+      // Check-in state lives on the `tickets` table (written by the scan_ticket RPC), not the legacy
+      // order_items.checked_in column, which nothing writes to anymore.
+      const { data: ticketRows } = await supabase.from("tickets" as any).select("id,status,event_id,created_at").in("event_id", ids);
+      const { data: scanLogRows } = await supabase
+        .from("scan_logs" as any)
+        .select("id,ticket_id,event_id,scanned_at,result")
+        .in("event_id", ids)
+        .order("scanned_at", { ascending: false })
+        .limit(30);
       const { data: orderRows } = await supabase
         .from("order_items")
         .select("id,unit_price_mwk,event_id,orders!inner(id,customer_email,status,created_at),ticket_tiers(name)")
@@ -87,9 +101,9 @@ const VendorDashboard = () => {
         const soldQty = Number(t.sold ?? 0);
         return sum + Math.max(0, Number(t.quantity) - soldQty);
       }, 0);
-      const used = (ticketRows ?? []).filter((t: any) => t.checked_in).length;
-      const validTickets = ticketRows?.length ?? 0;
-      const checkInRate = validTickets > 0 ? (used / validTickets) * 100 : 0;
+      const validTickets = (ticketRows ?? []).filter((t: any) => t.status !== "cancelled");
+      const used = validTickets.filter((t: any) => t.status === "used").length;
+      const checkInRate = validTickets.length > 0 ? (used / validTickets.length) * 100 : 0;
 
       const byDay = new Map<string, { revenue: number; sold: number }>();
       (items ?? []).forEach((it: any) => {
@@ -123,17 +137,13 @@ const VendorDashboard = () => {
       setRecentOrders(orderRows ?? []);
 
       setScanLogs(
-        (ticketRows ?? [])
-          .filter((row: any) => row.checked_in)
-          .map((row: any) => ({
-            id: row.id,
-            result: "checked_in",
-            scanned_at: row.checked_in_at ?? row.created_at,
-            event_id: row.event_id,
-            ticket_id: row.id,
-          }))
-          .sort((a, b) => b.scanned_at.localeCompare(a.scanned_at))
-          .slice(0, 30),
+        (scanLogRows ?? []).map((row: any) => ({
+          id: row.id,
+          result: row.result,
+          scanned_at: row.scanned_at,
+          event_id: row.event_id,
+          ticket_id: row.ticket_id,
+        })),
       );
     } else {
       setSales({});
@@ -190,7 +200,7 @@ const VendorDashboard = () => {
         const { error: e2 } = await supabase.from("ticket_tiers").insert(tierRows);
         if (e2) throw e2;
       }
-      toast.success("Event published! 🎉");
+      toast.success("Event published! ðŸŽ‰");
       setOpen(false);
       setTiers([{ name: "Regular", price: "", quantity: "" }]);
       setBannerFile(null);
@@ -425,14 +435,29 @@ const VendorDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((o: any) => (
-                  <tr key={o.id} className="border-t border-border">
-                    <td className="p-3">{o.orders?.customer_email ?? "Guest"}</td>
-                    <td className="p-3">{o.ticket_tiers?.name ?? "Tier"}</td>
-                    <td className="p-3">{formatMWK(o.unit_price_mwk ?? 0)}</td>
-                    <td className="p-3">{o.orders?.status}</td>
-                  </tr>
-                ))}
+                {recentOrders.map((o: any) => {
+                  const status = o.orders?.status ?? "unknown";
+                  const statusStyle =
+                    status === "paid"
+                      ? "bg-secondary/15 text-secondary"
+                      : status === "pending"
+                      ? "bg-amber-500/15 text-amber-600"
+                      : status === "failed" || status === "refunded"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-muted text-muted-foreground";
+                  return (
+                    <tr key={o.id} className="border-t border-border">
+                      <td className="p-3">{o.orders?.customer_email ?? "Guest"}</td>
+                      <td className="p-3">{o.ticket_tiers?.name ?? "Tier"}</td>
+                      <td className="p-3">{formatMWK(o.unit_price_mwk ?? 0)}</td>
+                      <td className="p-3">
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${statusStyle}`}>
+                          {status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {recentOrders.length === 0 && (
                   <tr>
                     <td colSpan={4} className="p-5 text-center text-muted-foreground">No recent orders.</td>
@@ -474,7 +499,7 @@ const VendorDashboard = () => {
                           {log.result.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="p-3 font-mono text-xs">{log.ticket_id?.slice(0, 8) ?? "—"}</td>
+                      <td className="p-3 font-mono text-xs">{log.ticket_id?.slice(0, 8) ?? "â€”"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -491,7 +516,7 @@ const VendorDashboard = () => {
               <div className="font-display font-bold flex-1">Earnings & payouts</div>
               <div className="text-xs text-muted-foreground">
                 Pending: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "pending").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
-                {" · "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
+                {" Â· "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -514,7 +539,7 @@ const VendorDashboard = () => {
                       <td className="p-3 font-mono text-xs">{p.order_id.slice(0, 8)}</td>
                       <td className="p-3">{p.tickets_count}</td>
                       <td className="p-3">{formatMWK(p.gross_mwk)}</td>
-                      <td className="p-3 text-amber-600">−{formatMWK(p.fee_mwk)}</td>
+                      <td className="p-3 text-amber-600">âˆ’{formatMWK(p.fee_mwk)}</td>
                       <td className="p-3 font-display font-bold text-secondary">{formatMWK(p.net_mwk)}</td>
                       <td className="p-3"><span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${p.status === "paid" ? "bg-secondary/15 text-secondary" : p.status === "cancelled" ? "bg-muted text-muted-foreground" : "bg-amber-500/15 text-amber-600"}`}>{p.status}</span></td>
                     </tr>
@@ -542,7 +567,7 @@ const VendorDashboard = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-display font-bold truncate">{ev.title}</div>
-                        <div className="text-sm text-muted-foreground">{formatDate(ev.starts_at)} · {ev.venue}, {ev.city}</div>
+                        <div className="text-sm text-muted-foreground">{formatDate(ev.starts_at)} Â· {ev.venue}, {ev.city}</div>
                         <div className="mt-1 flex gap-3 text-xs">
                           <span className="inline-flex items-center gap-1 text-muted-foreground"><Ticket className="w-3 h-3"/> <span className="font-semibold text-foreground">{es.sold}</span> sold</span>
                           <span className="inline-flex items-center gap-1 text-muted-foreground"><DollarSign className="w-3 h-3"/> <span className="font-semibold text-foreground">{formatMWK(es.revenue)}</span></span>
@@ -609,3 +634,6 @@ const VendorDashboard = () => {
 };
 
 export default VendorDashboard;
+
+
+
