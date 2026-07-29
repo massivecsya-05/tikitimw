@@ -9,10 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogOut, User, Phone, Mail, KeyRound, ChevronRight, Shield, Store } from "lucide-react";
+import { LogOut, User, Phone, Mail, KeyRound, ChevronRight, Shield, Store, FileText, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useIsStandalone } from "@/hooks/use-standalone";
 
 const Profile = () => {
   const { user, roles, loading, signOut } = useAuth();
+  const isStandalone = useIsStandalone();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
@@ -185,6 +188,27 @@ const Profile = () => {
             <LogOut className="w-4 h-4" />
             {signingOut ? "\u2026" : t("profile.signOut")}
           </Button>
+
+          {/* Legal \u2014 the footer with these links is desktop-only, so mobile/app users need this. */}
+          <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
+            <Link to="/terms" className="flex items-center gap-3 p-4 min-h-12 border-b border-border/60 hover:bg-muted/40 transition-colors">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm flex-1">Terms of Service</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </Link>
+            <Link to="/privacy" className="flex items-center gap-3 p-4 min-h-12 hover:bg-muted/40 transition-colors">
+              <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm flex-1">Privacy Policy</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </Link>
+          </div>
+
+          {isStandalone && (
+            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground py-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-secondary" />
+              Running as installed app
+            </div>
+          )}
         </div>
       </div>
     </PageShell>
@@ -192,3 +216,4 @@ const Profile = () => {
 };
 
 export default Profile;
+
