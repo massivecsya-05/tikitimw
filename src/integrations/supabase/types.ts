@@ -611,6 +611,15 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_event: { Args: { p_event_id: string }; Returns: undefined }
+      get_home_stats: {
+        Args: never
+        Returns: {
+          events_hosted: number
+          organisers: number
+          tickets_sold: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
