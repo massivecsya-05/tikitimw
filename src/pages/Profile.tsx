@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogOut, User, Phone, Mail, KeyRound, ChevronRight, Shield, Store, FileText, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { LogOut, User, Phone, Mail, KeyRound, ChevronRight, Shield, Store, FileText, ShieldCheck, CheckCircle2, Bell, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIsStandalone } from "@/hooks/use-standalone";
+import { useNotifications, useNotificationPreference } from "@/hooks/useNotifications";
 
 const Profile = () => {
   const { user, roles, loading, signOut } = useAuth();
@@ -23,6 +24,9 @@ const Profile = () => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { data: notifications = [], unreadCount, markRead, markAllRead } = useNotifications();
+  const { data: eventNotificationsEnabled = true, update: updatePreference } = useNotificationPreference();
 
   useEffect(() => {
     if (!user) return;
@@ -144,6 +148,76 @@ const Profile = () => {
             </Button>
           </form>
 
+
+          {/* Notifications card */}
+          <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowNotifications((v) => !v)}
+              className="w-full flex items-center justify-between p-5 min-h-12"
+            >
+              <span className="flex items-center gap-2 font-display font-bold text-sm uppercase tracking-wide text-muted-foreground">
+                <Bell className="w-4 h-4" /> Notifications
+                {unreadCount > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+              </span>
+              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showNotifications ? "rotate-90" : ""}`} />
+            </button>
+            {showNotifications && (
+              <div className="px-5 pb-5 border-t border-border/60 pt-4 space-y-4">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm">Notify me about new events</span>
+                  <input
+                    type="checkbox"
+                    checked={eventNotificationsEnabled}
+                    onChange={(e) => updatePreference.mutate(e.target.checked)}
+                    className="w-5 h-5 accent-primary"
+                  />
+                </label>
+
+                {notifications.length > 0 && unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => markAllRead.mutate()}
+                    className="text-xs text-primary font-medium flex items-center gap-1"
+                  >
+                    <Check className="w-3 h-3" /> Mark all as read
+                  </button>
+                )}
+
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No notifications yet</p>
+                  ) : (
+                    notifications.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => !n.is_read && markRead.mutate(n.id)}
+                        className={`w-full text-left p-3 rounded-xl border transition-colors ${
+                          n.is_read ? "border-border/40 bg-transparent" : "border-primary/30 bg-primary/5"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{n.title}</p>
+                            {n.body && <p className="text-xs text-muted-foreground mt-0.5">{n.body}</p>}
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {new Date(n.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           {/* Security card - collapsible on mobile to reduce clutter */}
           <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
             <button
@@ -216,4 +290,5 @@ const Profile = () => {
 };
 
 export default Profile;
+
 

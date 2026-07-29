@@ -4,10 +4,12 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export const MobileHeader = () => {
   const { lang, setLang } = useLanguage();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
 
   return (
     <header className="md:hidden sticky top-0 z-50 backdrop-blur-xl bg-background/75 border-b border-border/60 safe-area-pt">
@@ -24,10 +26,15 @@ export const MobileHeader = () => {
               </Button>
             </Link>
           )}
-          <Link to={user ? "/profile" : "/auth"}>
+          <Link to={user ? "/profile" : "/auth"} className="relative">
             <Button variant="ghost" size="icon" className="min-h-12 min-w-12">
               <Bell className="w-4 h-4" />
             </Button>
+            {user && unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </Link>
           <Button
             variant="ghost"

@@ -289,3 +289,82 @@ export async function submitVendorApplication(userId: string) {
   return data;
 }
 
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  event_id: string | null;
+  created_at: string;
+  is_read: boolean;
+}
+
+export async function fetchNotificationPreference(userId: string) {
+  const { data, error } = await supabase
+    .from("notification_preferences")
+    .select("event_notifications_enabled")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.event_notifications_enabled ?? true;
+}
+
+export async function updateNotificationPreference(userId: string, enabled: boolean) {
+  const { error } = await supabase
+    .from("notification_preferences")
+    .upsert({ user_id: userId, event_notifications_enabled: enabled, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function fetchNotifications(userId: string): Promise<NotificationItem[]> {
+  const eventsEnabled = await fetchNotificationPreference(userId);
+
+  let query = supabase
+    .from("notifications")
+    .select("id,type,title,body,event_id,created_at")
+    .order("created_at", { ascending: false });
+
+  if (!eventsEnabled) {
+    query = query.eq("type", "broadcast");
+  }
+
+  const { data: notifications, error } = await query;
+  if (error) throw error;
+
+  const { data: reads, error: rErr } = await supabase
+    .from("notification_reads")
+    .select("notification_id")
+    .eq("user_id", userId);
+  if (rErr) throw rErr;
+
+  const readIds = new Set((reads ?? []).map((r) => r.notification_id));
+
+  return (notifications ?? []).map((n) => ({
+    ...n,
+    is_read: readIds.has(n.id),
+  }));
+}
+
+export async function markNotificationRead(userId: string, notificationId: string) {
+  const { error } = await supabase
+    .from("notification_reads")
+    .upsert({ user_id: userId, notification_id: notificationId }, { onConflict: "notification_id,user_id" });
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(userId: string, notificationIds: string[]) {
+  if (!notificationIds.length) return;
+  const rows = notificationIds.map((id) => ({ user_id: userId, notification_id: id }));
+  const { error } = await supabase
+    .from("notification_reads")
+    .upsert(rows, { onConflict: "notification_id,user_id" });
+  if (error) throw error;
+}
+
+export async function sendBroadcastNotification(title: string, body: string, createdBy: string) {
+  const { error } = await supabase
+    .from("notifications")
+    .insert({ type: "broadcast", title, body, created_by: createdBy });
+  if (error) throw error;
+}

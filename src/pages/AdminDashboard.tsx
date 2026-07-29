@@ -1,23 +1,23 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteEvent } from "@/lib/api";
+import { deleteEvent, sendBroadcastNotification } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
   TrendingUp, Search, Crown, Store, UserCheck,
   Eye, EyeOff, Trash2, Mail, Settings as SettingsIcon, Wallet, Save,
-  ClipboardList, CheckCircle2, XCircle, Loader2, LogOut, ArrowLeft, Ban,
+  ClipboardList, CheckCircle2, XCircle, Loader2, LogOut, ArrowLeft, Ban, Bell, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit";
+type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit" | "broadcast";
 
 const AdminDashboard = () => {
   const { user, roles, loading, signOut } = useAuth();
@@ -39,6 +39,9 @@ const AdminDashboard = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
   const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
 
   const load = async () => {
     setDataLoading(true);
@@ -229,6 +232,21 @@ const AdminDashboard = () => {
     toast.success("Fee settings saved");
   };
 
+  const sendBroadcast = async () => {
+    if (!broadcastTitle.trim()) return toast.error("Title is required");
+    setSendingBroadcast(true);
+    try {
+      await sendBroadcastNotification(broadcastTitle.trim(), broadcastBody.trim(), user!.id);
+      toast.success("Notification sent to all users");
+      setBroadcastTitle("");
+      setBroadcastBody("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send notification");
+    } finally {
+      setSendingBroadcast(false);
+    }
+  };
+
   const markPayoutPaid = async (id: string) => {
     const { error } = await supabase.from("vendor_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", id);
     if (error) return toast.error(error.message);
@@ -322,6 +340,7 @@ const AdminDashboard = () => {
             {navItem("payouts", "Vendor payouts", Wallet)}
             {navItem("settings", "Platform fees", SettingsIcon)}
             {navItem("audit", "Activity log", Activity)}
+            {navItem("broadcast", "Send notification", Bell)}
           </div>
           <div className="mt-6 pt-4 border-t border-slate-800 px-2">
             <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Quick links</div>
@@ -341,6 +360,7 @@ const AdminDashboard = () => {
                 {tab === "payouts" && "Vendor payouts"}
                 {tab === "settings" && "Platform fees"}
                 {tab === "audit" && "Admin activity log"}
+                {tab === "broadcast" && "Send notification"}
               </h1>
             </div>
             <Badge className="bg-accent/15 text-accent border border-accent/30">
@@ -831,6 +851,44 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* BROADCAST */}
+          {tab === "broadcast" && (
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 max-w-xl">
+              <div className="font-display font-bold mb-1">Send notification to all users</div>
+              <p className="text-sm text-slate-400 mb-5">
+                This is delivered to every user regardless of their event-notification preference.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Title</label>
+                  <Input
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    placeholder="e.g. Scheduled maintenance tonight"
+                    className="mt-1 bg-slate-950 border-slate-800 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Message (optional)</label>
+                  <textarea
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    placeholder="Add more detail\u2026"
+                    rows={4}
+                    className="mt-1 w-full rounded-md bg-slate-950 border border-slate-800 text-slate-100 p-3 text-sm"
+                  />
+                </div>
+                <Button
+                  onClick={sendBroadcast}
+                  disabled={sendingBroadcast}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Send className="w-4 h-4" /> {sendingBroadcast ? "Sending\u2026" : "Send to all users"}
+                </Button>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
     </div>
@@ -838,3 +896,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
