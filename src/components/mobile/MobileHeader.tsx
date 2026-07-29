@@ -26,7 +26,7 @@ export const MobileHeader = () => {
               </Button>
             </Link>
           )}
-          <Link to={user ? "/profile" : "/auth"} className="relative">
+          <Link to={user ? "/notifications" : "/auth"} className="relative">
             <Button variant="ghost" size="icon" className="min-h-12 min-w-12">
               <Bell className="w-4 h-4" />
             </Button>
@@ -50,3 +50,4 @@ export const MobileHeader = () => {
     </header>
   );
 };
+

@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import { SplashScreen } from "@/components/SplashScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -18,6 +20,7 @@ import VendorDashboard from "./pages/VendorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import BecomeVendor from "./pages/BecomeVendor";
 import Profile from "./pages/Profile";
+import Notifications from "./pages/Notifications";
 import PaymentCallback from "./pages/PaymentCallback";
 import Scanner from "./pages/Scanner";
 import ResetPassword from "./pages/ResetPassword";
@@ -36,9 +39,16 @@ const App = () => {
   useEffect(() => {
     captureReferralFromUrl();
   }, []);
+  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <HelmetProvider>
+    <>
+      <AnimatePresence>{showSplash && <SplashScreen />}</AnimatePresence>
+      <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
           <TooltipProvider>
@@ -70,6 +80,7 @@ const App = () => {
                   <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
                   <Route path="/become-vendor" element={<BecomeVendor />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/notifications" element={<Notifications />} />
                   <Route path="/payment/callback" element={<PaymentCallback />} />
                   <Route path="/scanner" element={<Navigate to="/organiser/scan" replace />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -84,7 +95,10 @@ const App = () => {
         </LanguageProvider>
       </QueryClientProvider>
     </HelmetProvider>
+    </>
   );
 };
 
 export default App;
+
+
