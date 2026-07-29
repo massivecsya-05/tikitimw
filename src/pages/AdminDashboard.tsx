@@ -285,7 +285,7 @@ const AdminDashboard = () => {
         <div className="px-4 md:px-6 h-16 flex items-center justify-between">
           <Link to="/admin" className="flex items-center gap-2 font-display font-extrabold text-lg">
             <Logo className="w-8 h-8" />
-            Tikiti<span className="text-accent">MW</span>
+            <span>Tikiti<span className="text-accent">MW</span></span>
             <span className="text-[10px] uppercase tracking-widest text-accent font-bold border border-accent/30 rounded px-1.5 py-0.5 ml-1">
               Admin
             </span>
@@ -896,4 +896,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
 

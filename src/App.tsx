@@ -28,6 +28,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound.tsx";
+import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,13 +36,52 @@ const queryClient = new QueryClient({
   },
 });
 
+const AppRoutes = () => {
+  useAndroidBackButton();
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/events" element={<Events />} />
+      <Route path="/events/:id" element={<EventDetail />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/dashboard" element={<Navigate to="/my-tickets" replace />} />
+      <Route path="/my-tickets" element={<MyTickets />} />
+      <Route path="/my-tickets/:id" element={<TicketDetail />} />
+      <Route path="/vendor" element={<Navigate to="/organiser/dashboard" replace />} />
+      <Route path="/organiser/dashboard" element={<VendorDashboard />} />
+      <Route
+        path="/organiser/scan"
+        element={
+          <Suspense fallback={<div className="min-h-screen bg-background" />}>
+            <Scanner />
+          </Suspense>
+        }
+      />
+      <Route path="/organiser/check-in" element={<Navigate to="/organiser/scan" replace />} />
+      <Route path="/organiser/create" element={<Navigate to="/organiser/dashboard" replace />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
+      <Route path="/become-vendor" element={<BecomeVendor />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/payment/callback" element={<PaymentCallback />} />
+      <Route path="/scanner" element={<Navigate to="/organiser/scan" replace />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
 const App = () => {
   useEffect(() => {
     captureReferralFromUrl();
   }, []);
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 9000);
+    const timer = setTimeout(() => setShowSplash(false), 12000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -49,56 +89,23 @@ const App = () => {
     <>
       <AnimatePresence>{showSplash && <SplashScreen />}</AnimatePresence>
       <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/events" element={<Events />} />
-                  <Route path="/events/:id" element={<EventDetail />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/dashboard" element={<Navigate to="/my-tickets" replace />} />
-                  <Route path="/my-tickets" element={<MyTickets />} />
-                  <Route path="/my-tickets/:id" element={<TicketDetail />} />
-                  <Route path="/vendor" element={<Navigate to="/organiser/dashboard" replace />} />
-                  <Route path="/organiser/dashboard" element={<VendorDashboard />} />
-                  <Route
-                    path="/organiser/scan"
-                    element={
-                      <Suspense fallback={<div className="min-h-screen bg-background" />}>
-                        <Scanner />
-                      </Suspense>
-                    }
-                  />
-                  <Route path="/organiser/check-in" element={<Navigate to="/organiser/scan" replace />} />
-                  <Route path="/organiser/create" element={<Navigate to="/organiser/dashboard" replace />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
-                  <Route path="/become-vendor" element={<BecomeVendor />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/payment/callback" element={<PaymentCallback />} />
-                  <Route path="/scanner" element={<Navigate to="/organiser/scan" replace />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </LanguageProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AuthProvider>
+                  <AppRoutes />
+                </AuthProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
     </>
   );
 };
 
 export default App;
-
 

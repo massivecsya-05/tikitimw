@@ -16,7 +16,7 @@ export const MobileHeader = () => {
       <div className="flex items-center justify-between h-14 px-4">
         <Link to="/" className="flex items-center gap-2 font-display font-extrabold text-lg min-h-12">
           <Logo className="w-8 h-8" />
-          Tikiti<span className="text-primary">MW</span>
+          <span>Tikiti<span className="text-primary">MW</span></span>
         </Link>
         <div className="flex items-center gap-1">
           {!user && (
@@ -50,4 +50,5 @@ export const MobileHeader = () => {
     </header>
   );
 };
+
 
