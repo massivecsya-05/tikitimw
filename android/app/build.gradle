@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
+    setProperty("archivesBaseName", "tikitimw")
     namespace = "mw.tikiti.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {

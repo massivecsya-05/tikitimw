@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { X, Download, Share } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
@@ -23,7 +24,7 @@ export const InstallPrompt = () => {
   const [showIosSteps, setShowIosSteps] = useState(false);
 
   useEffect(() => {
-    if (isStandalone()) return;
+    if (Capacitor.isNativePlatform() || isStandalone()) return;
 
     const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
     if (Date.now() - dismissedAt < DISMISS_COOLDOWN_MS) return;
@@ -118,3 +119,4 @@ export const InstallPrompt = () => {
     </div>
   );
 };
+

@@ -130,7 +130,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
+      <div className="hidden lg:flex gap-2">
         {STEPS.map((s) => (
           <div key={s} className="flex-1">
             <div
@@ -227,7 +227,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   placeholder={user?.email ?? "you@example.com"}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="hidden lg:flex gap-2">
                 <Button variant="outline" className="min-h-12" onClick={() => setStep(1)}>
                   Back
                 </Button>
@@ -254,3 +254,4 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
     </div>
   );
 };
+

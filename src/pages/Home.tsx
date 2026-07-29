@@ -1,10 +1,8 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { EventCard } from "@/components/EventCard";
 import { EventCardSkeleton } from "@/components/EventCardSkeleton";
 import { FeaturedHero } from "@/components/home/FeaturedHero";
-import { NativeHomeHeader } from "@/components/home/NativeHomeHeader";
-import { useIsStandalone } from "@/hooks/use-standalone";
 import { SubscribeEmpty } from "@/components/home/SubscribeEmpty";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { StatsBar } from "@/components/home/StatsBar";
@@ -16,13 +14,11 @@ import { usePublishedEvents } from "@/hooks/useEvents";
 
 const Home = () => {
   const { data: events = [], isLoading, isError, error } = usePublishedEvents(12);
-  const isStandalone = useIsStandalone();
   const featured = events[0] ?? null;
   const rest = events.slice(1);
 
   return (
     <PageShell>
-      {isStandalone && <NativeHomeHeader />}
       {isError ? (
         <section className="container mx-auto px-4 py-20 text-center">
           <p className="text-destructive font-medium">Could not load events.</p>
@@ -92,4 +88,5 @@ const Home = () => {
 };
 
 export default Home;
+
 
