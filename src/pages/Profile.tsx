@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,11 +8,23 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { LogOut, User, Phone, Mail, KeyRound, ChevronRight, Shield, Store, FileText, ShieldCheck, CheckCircle2, Bell, Check } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  LogOut, User, Phone, Mail, KeyRound, ChevronRight, Shield, Store, FileText,
+  ShieldCheck, CheckCircle2, Bell, Check, HelpCircle, Search, Ticket, QrCode,
+} from "lucide-react";
 import { useIsStandalone } from "@/hooks/use-standalone";
 import { useNotifications, useNotificationPreference } from "@/hooks/useNotifications";
+
+const faqs = [
+  { q: "Is my payment secure?", a: "Yes. Payments are processed through licensed mobile money and card providers. TikitiMW never stores your PIN or card CVV." },
+  { q: "What if the event is cancelled?", a: "If an organiser cancels, paid ticket holders are notified by email/SMS and refunds are processed according to the event's policy." },
+  { q: "How do I get my ticket?", a: "After payment you'll see your QR ticket in My Tickets and receive a copy by email. Show the QR code at the gate." },
+  { q: "Which payment methods are accepted?", a: "Airtel Money, TNM Mpamba, Visa/Mastercard, and bank transfer are supported at checkout." },
+];
 
 const Profile = () => {
   const { user, roles, loading, signOut } = useAuth();
@@ -25,6 +37,8 @@ const Profile = () => {
   const [signingOut, setSigningOut] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
   const { data: notifications = [], unreadCount, markRead, markAllRead } = useNotifications();
   const { data: eventNotificationsEnabled = true, update: updatePreference } = useNotificationPreference();
 
@@ -36,6 +50,7 @@ const Profile = () => {
   if (loading) return null;
   if (!user) return <Navigate to="/auth" />;
 
+  const isVendorOrAdmin = roles.includes("vendor") || roles.includes("admin");
   const initial = (profile?.full_name?.[0] ?? user.email?.[0] ?? "?").toUpperCase();
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -103,7 +118,7 @@ const Profile = () => {
                   {profile?.full_name || "Your account"}
                 </h1>
                 <p className="text-sm text-primary-foreground/85 truncate">{user.email}</p>
-                {(roles.includes("admin") || roles.includes("vendor")) && (
+                {isVendorOrAdmin && (
                   <div className="flex gap-1.5 mt-2">
                     {roles.includes("admin") && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide bg-white/20 text-primary-foreground px-2 py-0.5 rounded-full">
@@ -148,6 +163,20 @@ const Profile = () => {
             </Button>
           </form>
 
+          {/* Vendor entry point */}
+          {isVendorOrAdmin ? (
+            <Link to="/organiser/dashboard" className="flex items-center gap-3 p-5 min-h-12 bg-card border border-border/60 rounded-2xl shadow-card hover:bg-muted/40 transition-colors">
+              <Store className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm flex-1 font-display font-bold uppercase tracking-wide text-muted-foreground">Organiser dashboard</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </Link>
+          ) : (
+            <Link to="/become-vendor" className="flex items-center gap-3 p-5 min-h-12 bg-card border border-border/60 rounded-2xl shadow-card hover:bg-muted/40 transition-colors">
+              <Store className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm flex-1 font-display font-bold uppercase tracking-wide text-muted-foreground">Become a vendor</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </Link>
+          )}
 
           {/* Notifications card */}
           <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
@@ -218,6 +247,67 @@ const Profile = () => {
               </div>
             )}
           </div>
+
+          {/* How it works card */}
+          <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowHowItWorks((v) => !v)}
+              className="w-full flex items-center justify-between p-5 min-h-12"
+            >
+              <span className="flex items-center gap-2 font-display font-bold text-sm uppercase tracking-wide text-muted-foreground">
+                <Ticket className="w-4 h-4" /> {t("how.title")}
+              </span>
+              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showHowItWorks ? "rotate-90" : ""}`} />
+            </button>
+            {showHowItWorks && (
+              <div className="px-5 pb-5 border-t border-border/60 pt-4 space-y-4">
+                {[
+                  { icon: Search, title: t("how.step1"), desc: "Find concerts, sports, festivals and more across Malawi." },
+                  { icon: Ticket, title: t("how.step2"), desc: "Pay with mobile money or card in under a minute." },
+                  { icon: QrCode, title: t("how.step3"), desc: "Your unique QR ticket \u2014 scan once at the gate." },
+                ].map((s, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-hero grid place-items-center">
+                      <s.icon className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-primary">Step {i + 1}</div>
+                      <h3 className="font-display font-bold text-sm">{s.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* FAQ card */}
+          <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowFAQ((v) => !v)}
+              className="w-full flex items-center justify-between p-5 min-h-12"
+            >
+              <span className="flex items-center gap-2 font-display font-bold text-sm uppercase tracking-wide text-muted-foreground">
+                <HelpCircle className="w-4 h-4" /> {t("faq.title")}
+              </span>
+              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showFAQ ? "rotate-90" : ""}`} />
+            </button>
+            {showFAQ && (
+              <div className="px-5 pb-5 border-t border-border/60 pt-2">
+                <Accordion type="single" collapsible className="w-full">
+                  {faqs.map((f, i) => (
+                    <AccordionItem key={i} value={`faq-${i}`}>
+                      <AccordionTrigger className="text-left font-semibold text-sm">{f.q}</AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground text-sm">{f.a}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            )}
+          </div>
+
           {/* Security card - collapsible on mobile to reduce clutter */}
           <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
             <button
@@ -251,18 +341,6 @@ const Profile = () => {
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="w-full min-h-12 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={handleSignOut}
-            disabled={signingOut}
-          >
-            <LogOut className="w-4 h-4" />
-            {signingOut ? "\u2026" : t("profile.signOut")}
-          </Button>
-
           {/* Legal \u2014 the footer with these links is desktop-only, so mobile/app users need this. */}
           <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
             <Link to="/terms" className="flex items-center gap-3 p-4 min-h-12 border-b border-border/60 hover:bg-muted/40 transition-colors">
@@ -283,6 +361,19 @@ const Profile = () => {
               Running as installed app
             </div>
           )}
+
+          {/* Sign out \u2014 always last */}
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full min-h-12 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            <LogOut className="w-4 h-4" />
+            {signingOut ? "\u2026" : t("profile.signOut")}
+          </Button>
         </div>
       </div>
     </PageShell>
@@ -290,6 +381,3 @@ const Profile = () => {
 };
 
 export default Profile;
-
-
-
