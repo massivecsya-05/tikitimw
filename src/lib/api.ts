@@ -256,9 +256,12 @@ export async function initiatePayment(orderId: string, customerEmail: string, re
   if (error) {
     let detail: string | undefined;
     try {
-      const resp = (error as { context?: { response?: Response } })?.context?.response;
-      if (resp) {
-        const body = await resp.clone().json().catch(() => null);
+      const context = (error as { context?: Response | { response?: Response } })?.context;
+      const resp = context instanceof Response ? context : context?.response;
+      if (resp instanceof Response) {
+        const body = await resp.clone().json().catch(() => null) as
+          | { error?: string; detail?: unknown }
+          | null;
         detail = body?.error || (body?.detail && JSON.stringify(body.detail));
       }
     } catch {
