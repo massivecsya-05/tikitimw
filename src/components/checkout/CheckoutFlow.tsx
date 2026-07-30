@@ -241,7 +241,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
         <div className="hidden lg:block lg:sticky lg:top-24 h-fit">{summary}</div>
       </div>
 
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border z-40 md:hidden">
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border z-40">
         <Button
           variant="hero"
           className="w-full min-h-12"
