@@ -1,5 +1,10 @@
-const CODE_KEY = "tikitimw_referral_code";
+﻿const CODE_KEY = "tikitimw_referral_code";
 const REF_PARAM = "ref";
+// Fixed production URL \u2014 required because window.location.origin is unreliable
+// inside the native app (Capacitor serves from an internal scheme, not the real
+// domain), so referral/share links must always point at the real hosted site
+// regardless of where the code is currently running.
+const BASE_URL = "https://tikitimw.tikiti.workers.dev";
 
 export function getOrCreateReferralCode(userId: string): string {
   const stored = localStorage.getItem(`${CODE_KEY}_${userId}`);
@@ -11,7 +16,7 @@ export function getOrCreateReferralCode(userId: string): string {
 
 export function getReferralLink(userId: string, path = "/events"): string {
   const code = getOrCreateReferralCode(userId);
-  const url = new URL(path, window.location.origin);
+  const url = new URL(path, BASE_URL);
   url.searchParams.set(REF_PARAM, code);
   return url.toString();
 }
@@ -53,3 +58,4 @@ export function eventWhatsAppText(params: {
 }) {
   return `Check out this event on Tikiti Malawi! ${params.title} on ${params.date} at ${params.venue}, ${params.city}. Book here: ${params.url}`;
 }
+

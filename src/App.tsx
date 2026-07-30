@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+﻿import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { SplashScreen } from "@/components/SplashScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
@@ -79,9 +80,14 @@ const App = () => {
   useEffect(() => {
     captureReferralFromUrl();
   }, []);
-  const [showSplash, setShowSplash] = useState(true);
+  // The Capacitor SplashScreen plugin already handles the native splash (see
+  // capacitor.config.ts) before the WebView even paints. This in-app animated
+  // splash is a *supplementary* branded loading moment for native only \u2014 it
+  // must never render on web, where it was incorrectly showing on every visit.
+  const [showSplash, setShowSplash] = useState(Capacitor.isNativePlatform());
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 12000);
+    if (!Capacitor.isNativePlatform()) return;
+    const timer = setTimeout(() => setShowSplash(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -108,4 +114,5 @@ const App = () => {
 };
 
 export default App;
+
 

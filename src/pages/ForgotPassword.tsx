@@ -1,4 +1,5 @@
-import { useState } from "react";
+﻿import { useState } from "react";
+import { APP_URL } from "@/lib/env";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +24,7 @@ const ForgotPassword = () => {
 
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(ev.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${APP_URL}/reset-password`,
     });
     setLoading(false);
 
@@ -80,7 +81,7 @@ const ForgotPassword = () => {
                 />
               </div>
               <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                {loading ? "Sending…" : "Send reset link"}
+                {loading ? "Sendingâ€¦" : "Send reset link"}
               </Button>
               <p className="text-sm text-center">
                 Remember your password?{" "}
@@ -97,3 +98,5 @@ const ForgotPassword = () => {
 };
 
 export default ForgotPassword;
+
+

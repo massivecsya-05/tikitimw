@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertTriangle, Share2 } from "lucide-react";
 import { paymentErrorMessage } from "@/lib/format";
-import { clearPendingReferral, getPendingReferral, grantReferralReward, whatsappShareUrl } from "@/lib/referral";
+import { clearPendingReferral, getPendingReferral, grantReferralReward, whatsappShareUrl } from "@/lib/referral";
+import { openExternal } from "@/lib/nativeLinks";
 import { useLanguage } from "@/contexts/LanguageContext";
 import QRCode from "qrcode";
 
@@ -145,7 +146,7 @@ const PaymentCallback = () => {
         {status === "checking" && (
           <>
             <Loader2 className="w-14 h-14 text-primary animate-spin mb-4" />
-            <h1 className="font-display font-bold text-3xl">Confirming payment…</h1>
+            <h1 className="font-display font-bold text-3xl">Confirming paymentâ€¦</h1>
           </>
         )}
         {status === "paid" && (
@@ -169,7 +170,7 @@ const PaymentCallback = () => {
                 size="lg"
                 className="min-h-12 w-full gap-2"
                 onClick={() =>
-                  window.open(whatsappShareUrl(`I just got my Tikiti ticket for ${ev?.title ?? "an event"}!`), "_blank")
+                  openExternal(whatsappShareUrl(`I just got my Tikiti ticket for ${ev?.title ?? "an event"}!`))
                 }
               >
                 <Share2 className="w-4 h-4" /> {t("confirm.share")}
@@ -182,7 +183,7 @@ const PaymentCallback = () => {
             <Loader2 className="w-14 h-14 text-amber-500 mb-4" />
             <h1 className="font-display font-bold text-3xl">Still processing</h1>
             <p className="text-muted-foreground mt-2">
-              Your payment is taking longer than usual. Check your dashboard in a minute — if it doesn't show
+              Your payment is taking longer than usual. Check your dashboard in a minute â€” if it doesn't show
               up, contact support.
             </p>
             <Button asChild variant="outline" size="lg" className="mt-6 min-h-12">
@@ -206,3 +207,4 @@ const PaymentCallback = () => {
 };
 
 export default PaymentCallback;
+

@@ -12,6 +12,8 @@ import { EventSEO } from "@/components/seo/EventSEO";
 import { useEvent, useEventTiers } from "@/hooks/useEvent";
 import { usePublishedEvents } from "@/hooks/useEvents";
 import { eventWhatsAppText, whatsappShareUrl } from "@/lib/referral";
+import { APP_URL } from "@/lib/env";
+import { openExternal } from "@/lib/nativeLinks";
 import { enrichEventsWithTiers } from "@/lib/api";
 
 const EventDetail = () => {
@@ -50,7 +52,7 @@ const EventDetail = () => {
   const minPrice = enriched?.min_price ?? (tiers.length ? Math.min(...tiers.map((t) => Number(t.price_mwk))) : undefined);
 
   const shareEvent = () => {
-    const url = window.location.href;
+    const url = `${APP_URL}/events/${event.id}`;
     const text = eventWhatsAppText({
       title: event.title,
       date: formatDate(event.starts_at),
@@ -58,7 +60,7 @@ const EventDetail = () => {
       city: event.city,
       url,
     });
-    window.open(whatsappShareUrl(text), "_blank");
+    openExternal(whatsappShareUrl(text));
   };
 
   return (
@@ -175,4 +177,6 @@ const EventDetail = () => {
 };
 
 export default EventDetail;
+
+
 

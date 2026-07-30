@@ -8,6 +8,7 @@ import { ensureOrderTickets, fetchUserTickets, type UserTicketItem } from "@/lib
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
 import { saveTicketsOffline, type StoredTicket } from "@/lib/tickets-storage";
 import { getReferralLink, whatsappShareUrl } from "@/lib/referral";
+import { openExternal } from "@/lib/nativeLinks";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,7 +107,7 @@ const MyTickets = () => {
 
   const referralLink = getReferralLink(user.id);
   const shareReferral = () => {
-    window.open(whatsappShareUrl(`Join me on Tikiti Malawi! Book events here: ${referralLink}`), "_blank");
+    openExternal(whatsappShareUrl(`Join me on Tikiti Malawi! Book events here: ${referralLink}`));
   };
   const copyReferral = () => {
     navigator.clipboard.writeText(referralLink);
@@ -212,3 +213,5 @@ const MyTickets = () => {
 };
 
 export default MyTickets;
+
+

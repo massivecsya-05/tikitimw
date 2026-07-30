@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Logo } from "@/components/Logo";
+import { APP_URL } from "@/lib/env";
 
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Min 6 characters").max(72);
@@ -67,7 +68,7 @@ const Auth = () => {
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: ev.data, password: pv.data,
-      options: { emailRedirectTo: window.location.origin, data: { full_name: nv.data, phone } },
+      options: { emailRedirectTo: APP_URL, data: { full_name: nv.data, phone } },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -155,3 +156,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
