@@ -6,17 +6,25 @@ import { fetchUserTickets } from "@/lib/api";
 import { getOfflineTicket } from "@/lib/tickets-storage";
 import { formatDate, formatTime, formatMWK } from "@/lib/format";
 import { eventWhatsAppText, whatsappShareUrl } from "@/lib/referral";
+import { APP_URL } from "@/lib/env";
+import { openExternal } from "@/lib/nativeLinks";
+import { generateTicketPdfBase64 } from "@/lib/ticketPdf";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Download } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
+import { toast } from "sonner";
 
 const TicketDetail = () => {
   const { id } = useParams();
   const { user, loading } = useAuth();
   const { t } = useLanguage();
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
   const { data: items } = useQuery({
     queryKey: ["my-tickets", user?.id],
@@ -59,29 +67,58 @@ const TicketDetail = () => {
   }
 
   const shareWa = () => {
-    window.open(
+    const url = `${APP_URL}/my-tickets/${id}`;
+    openExternal(
       whatsappShareUrl(
         eventWhatsAppText({
           title,
           date: startsAt ? formatDate(startsAt) : "",
           venue,
           city,
-          url: window.location.href,
+          url,
         }),
       ),
-      "_blank",
     );
   };
 
-  const downloadPdf = () => {
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><body style="font-family:system-ui;padding:24px;text-align:center">
-      <h1>${title}</h1><p>${venue}, ${city}</p>
-      <p>${startsAt ? formatDate(startsAt) : ""}</p>
-      <img src="${qrDataUrl}" width="240"/><p style="font-family:monospace;font-size:12px">${qr}</p>
-    </body></html>`);
-    w.print();
+  const downloadPdf = async () => {
+    if (!qrDataUrl) return;
+    setDownloading(true);
+    try {
+      const base64 = generateTicketPdfBase64({
+        title,
+        venue,
+        city,
+        dateLabel: startsAt ? `${formatDate(startsAt)} \u00b7 ${formatTime(startsAt)}` : "",
+        qrDataUrl,
+        qrCode: qr,
+      });
+      const fileName = `TikitiMW-${(id ?? "ticket").slice(0, 8)}.pdf`;
+
+      if (Capacitor.isNativePlatform()) {
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        await Share.share({
+          title,
+          url: result.uri,
+          dialogTitle: "Save or share your ticket",
+        });
+      } else {
+        const link = document.createElement("a");
+        link.href = `data:application/pdf;base64,${base64}`;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } catch (e) {
+      toast.error("Could not prepare the ticket file. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -94,7 +131,7 @@ const TicketDetail = () => {
           <h1 className="font-display font-bold text-2xl">{title}</h1>
           {startsAt && (
             <p className="text-sm text-muted-foreground mt-2">
-              {formatDate(startsAt)} · {formatTime(startsAt)}
+              {formatDate(startsAt)} \u00b7 {formatTime(startsAt)}
             </p>
           )}
           <p className="text-sm text-muted-foreground">
@@ -107,8 +144,8 @@ const TicketDetail = () => {
             <Button variant="hero" className="min-h-12 gap-2" onClick={shareWa}>
               <Share2 className="w-4 h-4" /> {t("confirm.share")}
             </Button>
-            <Button variant="outline" className="min-h-12 gap-2" onClick={downloadPdf}>
-              <Download className="w-4 h-4" /> Download PDF
+            <Button variant="outline" className="min-h-12 gap-2" onClick={downloadPdf} disabled={downloading || !qrDataUrl}>
+              <Download className="w-4 h-4" /> {downloading ? "Preparing\u2026" : "Download PDF"}
             </Button>
           </div>
         </div>

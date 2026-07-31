@@ -234,6 +234,8 @@ export async function createPendingOrder(params: {
       status: "pending",
       payment_method: params.paymentMethod,
       customer_email: params.customerEmail ?? null,
+      customer_name: params.customerName ?? null,
+      customer_phone: params.customerPhone ?? null,
     })
     .select()
     .single();
@@ -249,21 +251,60 @@ export async function insertOrderItems(
   if (error) throw error;
 }
 
+const PAYMENT_INVOKE_TIMEOUT_MS = 45_000;
+
+async function parseFunctionError(error: unknown): Promise<string | undefined> {
+  try {
+    const resp = (error as { context?: { response?: Response } })?.context?.response;
+    if (!resp) return undefined;
+    const body = await resp.clone().json().catch(() => null);
+    if (typeof body?.error === "string" && body.error) return body.error;
+    if (body?.detail) {
+      const detail = body.detail;
+      if (typeof detail === "string") return detail;
+      if (typeof detail?.message === "string") return detail.message;
+      return JSON.stringify(detail);
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
 export async function initiatePayment(orderId: string, customerEmail: string, returnUrl: string) {
-  const { data, error } = await supabase.functions.invoke("initiate-payment", {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session) {
+    throw new Error("Please sign in again to complete payment.");
+  }
+
+  const expiresAt = sessionData.session.expires_at ?? 0;
+  if (expiresAt * 1000 < Date.now() + 60_000) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) throw new Error("Your session expired. Please sign in again.");
+  }
+
+  const invoke = supabase.functions.invoke("initiate-payment", {
     body: { order_id: orderId, customer_email: customerEmail, return_url: returnUrl },
   });
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error("Payment gateway timed out. Please try again.")),
+      PAYMENT_INVOKE_TIMEOUT_MS,
+    );
+  });
+
+  let result: Awaited<typeof invoke>;
+  try {
+    result = await Promise.race([invoke, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+
+  const { data, error } = result;
   if (error) {
-    let detail: string | undefined;
-    try {
-      const resp = (error as { context?: { response?: Response } })?.context?.response;
-      if (resp) {
-        const body = await resp.clone().json().catch(() => null);
-        detail = body?.error || (body?.detail && JSON.stringify(body.detail));
-      }
-    } catch {
-      /* ignore */
-    }
+    const detail = await parseFunctionError(error);
     console.error("initiate-payment failed", { error, detail });
     throw new Error(detail || (error as Error).message || "Could not start payment");
   }

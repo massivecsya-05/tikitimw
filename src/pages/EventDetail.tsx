@@ -10,7 +10,6 @@ import { EventImage } from "@/components/EventImage";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { EventSEO } from "@/components/seo/EventSEO";
 import { useEvent, useEventTiers } from "@/hooks/useEvent";
-import { usePublishedEvents } from "@/hooks/useEvents";
 import { eventWhatsAppText, whatsappShareUrl } from "@/lib/referral";
 import { APP_URL } from "@/lib/env";
 import { openExternal } from "@/lib/nativeLinks";
@@ -24,7 +23,6 @@ const EventDetail = () => {
 
   const { data: event, isLoading } = useEvent(id);
   const { data: tiers = [] } = useEventTiers(id);
-  const { data: allEvents } = usePublishedEvents();
 
   if (isLoading) {
     return (
@@ -47,7 +45,7 @@ const EventDetail = () => {
   }
 
   const cat = CATEGORIES.find((c) => c.value === event.category);
-  const enriched = allEvents?.find((e) => e.id === event.id) ?? enrichEventsWithTiers([event], tiers)[0];
+  const enriched = enrichEventsWithTiers([event], tiers)[0];
   const remaining = enriched?.total_remaining ?? tiers.reduce((s, t) => s + (t.quantity - t.sold), 0);
   const minPrice = enriched?.min_price ?? (tiers.length ? Math.min(...tiers.map((t) => Number(t.price_mwk))) : undefined);
 

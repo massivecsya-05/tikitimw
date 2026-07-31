@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Logo } from "@/components/Logo";
 import { APP_URL } from "@/lib/env";
+import { MailCheck } from "lucide-react";
 
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Min 6 characters").max(72);
@@ -26,6 +27,7 @@ const Auth = () => {
   const [tab, setTab] = useState(initialMode);
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [checkEmailFor, setCheckEmailFor] = useState<string | null>(null);
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -68,12 +70,14 @@ const Auth = () => {
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: ev.data, password: pv.data,
-      options: { emailRedirectTo: APP_URL, data: { full_name: nv.data, phone } },
+      options: { emailRedirectTo: `${APP_URL}/email-verified`, data: { full_name: nv.data, phone } },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success("Account created! Check your email to confirm.");
-    nav(redirect);
+    // Do NOT navigate into the app here \u2014 Supabase has not created a session yet
+    // (email confirmation is required), so silently proceeding would either dead-end
+    // or, worse, mask the fact that the email hasn't actually been verified.
+    setCheckEmailFor(ev.data);
   };
 
   return (
@@ -97,58 +101,78 @@ const Auth = () => {
             <Logo className="w-9 h-9" />
             TikitiMW
           </Link>
-          <Tabs value={tab} onValueChange={setTab as any}>
-            <TabsList className="grid grid-cols-2 w-full mb-6">
-              <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
-              <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin">
-              <h2 className="font-display font-bold text-3xl mb-1">Welcome back</h2>
-              <p className="text-muted-foreground mb-6">Sign in to access your tickets</p>
-              <form onSubmit={signIn} className="space-y-4">
-                <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
-                <div>
-                  <Label>Password</Label>
-                  <PasswordInput name="password" required className="h-11" />
-                  <div className="flex justify-end mt-1">
-                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                      Forgot password?
-                    </Link>
+
+          {checkEmailFor ? (
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 grid place-items-center mx-auto mb-4">
+                <MailCheck className="w-9 h-9 text-primary" />
+              </div>
+              <h2 className="font-display font-bold text-3xl mb-2">Check your inbox</h2>
+              <p className="text-muted-foreground mb-1">
+                We sent a confirmation link to
+              </p>
+              <p className="font-semibold mb-6">{checkEmailFor}</p>
+              <p className="text-sm text-muted-foreground mb-6">
+                Click the link in that email to verify your account and get signed in. Didn't get it? Check spam, or try signing up again in a minute.
+              </p>
+              <Button variant="outline" className="w-full min-h-12" onClick={() => setCheckEmailFor(null)}>
+                Back to sign in
+              </Button>
+            </div>
+          ) : (
+            <Tabs value={tab} onValueChange={setTab as any}>
+              <TabsList className="grid grid-cols-2 w-full mb-6">
+                <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+                <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="signin">
+                <h2 className="font-display font-bold text-3xl mb-1">Welcome back</h2>
+                <p className="text-muted-foreground mb-6">Sign in to access your tickets</p>
+                <form onSubmit={signIn} className="space-y-4">
+                  <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
+                  <div>
+                    <Label>Password</Label>
+                    <PasswordInput name="password" required className="h-11" />
+                    <div className="flex justify-end mt-1">
+                      <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                        Forgot password?
+                      </Link>
+                    </div>
                   </div>
-                </div>
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : t("auth.signIn")}</Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="signup">
-              <h2 className="font-display font-bold text-3xl mb-1">Create your account</h2>
-              <p className="text-muted-foreground mb-6">Start booking tickets today</p>
-              <form onSubmit={signUp} className="space-y-4">
-                <div><Label>Full name</Label><Input name="name" required className="h-11" /></div>
-                <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
-                <div><Label>Phone (optional)</Label><Input name="phone" placeholder="+265..." className="h-11" /></div>
-                <div><Label>Password</Label><PasswordInput name="password" required minLength={6} className="h-11" /></div>
-                <div className="flex items-start gap-2.5 pt-1">
-                  <Checkbox
-                    id="agree-terms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(v) => setAgreedToTerms(v === true)}
-                    className="mt-0.5"
-                  />
-                  <Label htmlFor="agree-terms" className="text-sm font-normal text-muted-foreground leading-snug cursor-pointer">
-                    I agree to the{" "}
-                    <Link to="/terms" target="_blank" className="text-primary hover:underline">
-                      Terms of Service
-                    </Link>{" "}
-                    and{" "}
-                    <Link to="/privacy" target="_blank" className="text-primary hover:underline">
-                      Privacy Policy
-                    </Link>
-                  </Label>
-                </div>
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || !agreedToTerms}>{loading ? "..." : t("auth.signUp")}</Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                  <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>{loading ? "..." : t("auth.signIn")}</Button>
+                </form>
+              </TabsContent>
+              <TabsContent value="signup">
+                <h2 className="font-display font-bold text-3xl mb-1">Create your account</h2>
+                <p className="text-muted-foreground mb-6">Start booking tickets today</p>
+                <form onSubmit={signUp} className="space-y-4">
+                  <div><Label>Full name</Label><Input name="name" required className="h-11" /></div>
+                  <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
+                  <div><Label>Phone (optional)</Label><Input name="phone" placeholder="+265..." className="h-11" /></div>
+                  <div><Label>Password</Label><PasswordInput name="password" required minLength={6} className="h-11" /></div>
+                  <div className="flex items-start gap-2.5 pt-1">
+                    <Checkbox
+                      id="agree-terms"
+                      checked={agreedToTerms}
+                      onCheckedChange={(v) => setAgreedToTerms(v === true)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="agree-terms" className="text-sm font-normal text-muted-foreground leading-snug cursor-pointer">
+                      I agree to the{" "}
+                      <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link to="/privacy" target="_blank" className="text-primary hover:underline">
+                        Privacy Policy
+                      </Link>
+                    </Label>
+                  </div>
+                  <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || !agreedToTerms}>{loading ? "..." : t("auth.signUp")}</Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </div>
     </div>
@@ -156,4 +180,3 @@ const Auth = () => {
 };
 
 export default Auth;
-

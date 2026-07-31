@@ -1,28 +1,23 @@
+import { Link } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
-import { SearchBar } from "@/components/SearchBar";
+import { EventCard } from "@/components/EventCard";
 import { EventCardSkeleton } from "@/components/EventCardSkeleton";
-import { FeaturedEventCard } from "@/components/home/FeaturedEventCard";
-import { EventCategoryRow } from "@/components/home/EventCategoryRow";
+import { FeaturedHero } from "@/components/home/FeaturedHero";
 import { SubscribeEmpty } from "@/components/home/SubscribeEmpty";
 import { StatsBar } from "@/components/home/StatsBar";
+import { FAQ } from "@/components/home/FAQ";
 import { TicketDivider } from "@/components/TicketDivider";
-import { CATEGORIES } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 import { usePublishedEvents } from "@/hooks/useEvents";
 
 const Home = () => {
-  const { data: events = [], isLoading, isError, error } = usePublishedEvents(24);
-
-  const categoriesPresent = CATEGORIES.filter((c) => events.some((e) => e.category === c.value)).slice(0, 4);
-  const cityCounts: Record<string, number> = {};
-  events.forEach((e) => { cityCounts[e.city] = (cityCounts[e.city] ?? 0) + 1; });
-  const topCity = Object.entries(cityCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const { data: events = [], isLoading, isError, error } = usePublishedEvents(12);
+  const featured = events[0] ?? null;
+  const rest = events.slice(1);
 
   return (
     <PageShell>
-      <div className="px-4 pt-4 pb-2">
-        <SearchBar />
-      </div>
-
       {isError ? (
         <section className="container mx-auto px-4 py-20 text-center">
           <p className="text-destructive font-medium">Could not load events.</p>
@@ -31,39 +26,61 @@ const Home = () => {
           </p>
         </section>
       ) : isLoading ? (
-        <div className="flex gap-3 overflow-x-auto px-4 py-2">
-          {[...Array(3)].map((_, i) => <EventCardSkeleton key={i} />)}
-        </div>
-      ) : events.length === 0 ? (
+        <div className="min-h-[420px] bg-muted animate-pulse" />
+      ) : featured ? (
+        <FeaturedHero event={featured} />
+      ) : (
         <section className="container mx-auto px-4 py-20">
           <SubscribeEmpty />
         </section>
-      ) : (
-        <>
-          <section className="py-2">
-            <h2 className="font-display font-bold text-xl px-4 mb-3">Featured Events</h2>
-            <div className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scrollbar-hide">
-              {events.slice(0, 6).map((e) => <FeaturedEventCard key={e.id} e={e} />)}
-            </div>
-          </section>
-
-          {topCity && (
-            <EventCategoryRow title={`Upcoming near ${topCity}`} events={events.filter((e) => e.city === topCity)} />
-          )}
-
-          {categoriesPresent.map((c) => (
-            <EventCategoryRow
-              key={c.value}
-              title={`${c.emoji} ${c.label}`}
-              events={events.filter((e) => e.category === c.value)}
-            />
-          ))}
-        </>
       )}
+
+      <section className="container mx-auto px-4 mt-8 pb-8">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="font-display font-extrabold text-4xl md:text-5xl">Trending now</h2>
+            <p className="text-muted-foreground mt-2">Hand-picked happenings across Malawi</p>
+          </div>
+          <Button asChild variant="ghost" className="min-h-12 hidden sm:inline-flex">
+            <Link to="/events">
+              View all <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <EventCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : rest.length === 0 && !featured ? (
+          <SubscribeEmpty />
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {(rest.length ? rest : events).map((e) => (
+              <EventCard key={e.id} e={e} />
+            ))}
+          </div>
+        )}
+      </section>
 
       <TicketDivider />
       <StatsBar />
-      <div className="pb-20 md:pb-8" />
+      <TicketDivider />
+      <FAQ />
+
+      <section className="container mx-auto px-4 mt-12 mb-20 md:mb-12">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-hero p-10 md:p-16 shadow-glow">
+          <div className="relative max-w-2xl text-primary-foreground">
+            <h2 className="font-display font-extrabold text-4xl md:text-5xl">Hosting an event in Malawi?</h2>
+            <p className="mt-4 text-lg opacity-95">Reach thousands of attendees and get paid the same day.</p>
+            <Button asChild variant="gold" size="xl" className="mt-8 min-h-12">
+              <Link to="/become-vendor">Become a vendor</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
     </PageShell>
   );
 };

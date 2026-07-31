@@ -14,6 +14,7 @@ export function usePublishedEvents(limit?: number) {
   return useQuery({
     queryKey: ["events", "published", limit],
     queryFn: () => fetchPublishedEvents(limit),
+    staleTime: 60_000,
   });
 }
 
@@ -21,6 +22,7 @@ export function useFilteredEvents(filters: EventFilters) {
   const query = useQuery({
     queryKey: ["events", "all-published"],
     queryFn: fetchAllPublishedEvents,
+    staleTime: 60_000,
   });
 
   const filtered = useMemo(() => {
@@ -30,4 +32,3 @@ export function useFilteredEvents(filters: EventFilters) {
 
   return { ...query, filtered, count: filtered.length };
 }
-

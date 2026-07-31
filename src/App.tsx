@@ -27,6 +27,7 @@ import Scanner from "./pages/Scanner";
 import ResetPassword from "./pages/ResetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import EmailVerified from "./pages/EmailVerified";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound.tsx";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
@@ -70,6 +71,7 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/email-verified" element={<EmailVerified />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -114,5 +116,6 @@ const App = () => {
 };
 
 export default App;
+
 
 

@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { formatMWK, PAYMENT_METHODS, paymentErrorMessage, type PaymentMethodValue } from "@/lib/format";
+import { formatMWK, paymentErrorMessage, type PaymentMethodValue } from "@/lib/format";
 import {
   createPendingOrder,
   detectMobileNetwork,
@@ -15,9 +13,10 @@ import {
 } from "@/lib/api";
 import type { Database } from "@/integrations/supabase/types";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getAppOrigin } from "@/lib/env";
+import { openPaymentUrl } from "@/lib/nativeLinks";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
-
 type Tier = Database["public"]["Tables"]["ticket_tiers"]["Row"];
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
@@ -40,6 +39,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
   const [email, setEmail] = useState(user?.email ?? "");
   const [pay, setPay] = useState<PaymentMethodValue>("airtel_money");
   const [submitting, setSubmitting] = useState(false);
+  const payLock = useRef(false);
   const MAX_TICKETS_PER_ORDER = 4;
 
   const total = tiers.reduce((sum, tier) => sum + (qty[tier.id] ?? 0) * Number(tier.price_mwk), 0);
@@ -62,6 +62,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
   };
 
   const goPay = async () => {
+    if (payLock.current || submitting) return;
     if (!user) {
       nav(`/auth?redirect=/events/${event.id}`);
       return;
@@ -80,6 +81,8 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
       toast.error("Use a valid Malawi phone number in +265 format");
       return;
     }
+
+    payLock.current = true;
     setSubmitting(true);
     try {
       const order = await createPendingOrder({
@@ -104,15 +107,20 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
         );
       await insertOrderItems(items);
 
-      const returnUrl = `${window.location.origin}/payment/callback?order_id=${order.id}`;
+      const returnUrl = `${getAppOrigin()}/payment/callback?order_id=${order.id}`;
       const payData = await initiatePayment(order.id, payEmail, returnUrl);
       if (payData.error) throw new Error(paymentErrorMessage(payData.error));
       if (!payData.checkout_url) throw new Error("Could not start payment. Please try again.");
 
-      window.location.href = payData.checkout_url;
+      const mode = await openPaymentUrl(payData.checkout_url);
+      if (mode === "native") {
+        payLock.current = false;
+        setSubmitting(false);
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : paymentErrorMessage();
       toast.error(msg);
+      payLock.current = false;
       setSubmitting(false);
     }
   };
@@ -130,7 +138,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="hidden lg:flex gap-2">
+      <div className="flex gap-2">
         {STEPS.map((s) => (
           <div key={s} className="flex-1">
             <div
@@ -193,7 +201,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                 disabled={totalQty === 0}
                 onClick={() => setStep(2)}
               >
-                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER})
+                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER}) · {formatMWK(total)}
               </Button>
             </div>
           )}
@@ -227,7 +235,8 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   placeholder={user?.email ?? "you@example.com"}
                 />
               </div>
-              <div className="hidden lg:flex gap-2">
+
+              <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="min-h-12" onClick={() => setStep(1)}>
                   Back
                 </Button>
@@ -240,18 +249,6 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
         </div>
         <div className="hidden lg:block lg:sticky lg:top-24 h-fit">{summary}</div>
       </div>
-
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border z-40 md:hidden">
-        <Button
-          variant="hero"
-          className="w-full min-h-12"
-          disabled={step === 1 ? totalQty === 0 : submitting}
-          onClick={() => step === 1 ? setStep(2) : goPay()}
-        >
-          {step === 1 ? `Continue · ${formatMWK(total)}` : submitting ? "Processing…" : `Pay ${formatMWK(total)}`}
-        </Button>
-      </div>
     </div>
   );
 };
-

@@ -8,6 +8,16 @@ export async function openExternal(url: string) {
   if (Capacitor.isNativePlatform()) {
     await Browser.open({ url });
   } else {
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   }
+}
+
+/** Redirect to PayChangu checkout — must leave the WebView on native. */
+export async function openPaymentUrl(url: string): Promise<"native" | "redirect"> {
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url });
+    return "native";
+  }
+  window.location.assign(url);
+  return "redirect";
 }

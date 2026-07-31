@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(25_000),
     });
 
     const pcData = await pcRes.json().catch(() => ({}));
@@ -102,6 +103,9 @@ Deno.serve(async (req) => {
     return json({ checkout_url: checkoutUrl, tx_ref: txRef });
   } catch (e) {
     console.error("initiate-payment unhandled", e);
+    if (e instanceof DOMException && e.name === "TimeoutError") {
+      return json({ error: "Payment provider timed out. Please try again." }, 504);
+    }
     return json({ error: e instanceof Error ? e.message : "unknown" }, 500);
   }
 });
