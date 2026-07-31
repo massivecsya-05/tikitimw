@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,7 +138,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
+      <div className="hidden lg:flex gap-2">
         {STEPS.map((s) => (
           <div key={s} className="flex-1">
             <div
@@ -201,7 +201,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                 disabled={totalQty === 0}
                 onClick={() => setStep(2)}
               >
-                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER}) · {formatMWK(total)}
+                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER}) Â· {formatMWK(total)}
               </Button>
             </div>
           )}
@@ -220,7 +220,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   required
                   className="h-12 mt-1"
                   inputMode="tel"
-                  placeholder="+265…"
+                  placeholder="+265â€¦"
                 />
               </div>
               <div>
@@ -241,7 +241,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   Back
                 </Button>
                 <Button variant="hero" className="flex-1 min-h-12" disabled={submitting} onClick={() => goPay()}>
-                  {submitting ? "Processing…" : `Pay ${formatMWK(total)}`}
+                  {submitting ? "Processingâ€¦" : `Pay ${formatMWK(total)}`}
                 </Button>
               </div>
             </div>
@@ -249,6 +249,17 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
         </div>
         <div className="hidden lg:block lg:sticky lg:top-24 h-fit">{summary}</div>
       </div>
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border z-40">
+        <Button
+          variant="hero"
+          className="w-full min-h-12"
+          disabled={step === 1 ? totalQty === 0 : submitting}
+          onClick={() => step === 1 ? setStep(2) : goPay()}
+        >
+          {step === 1 ? `Continue \u00b7 ${formatMWK(total)}` : submitting ? "Processing\u2026" : `Pay ${formatMWK(total)}`}
+        </Button>
+      </div>
     </div>
   );
 };
+

@@ -70,7 +70,7 @@ const Auth = () => {
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: ev.data, password: pv.data,
-      options: { emailRedirectTo: `${APP_URL}/email-verified`, data: { full_name: nv.data, phone } },
+        options: { emailRedirectTo: `${APP_URL}/email-verified`, data: { full_name: nv.data, phone } },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
