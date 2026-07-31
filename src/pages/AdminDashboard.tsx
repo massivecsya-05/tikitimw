@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteEvent, sendBroadcastNotification } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { saveOrShareFile } from "@/lib/nativeLinks";
+import { generateApplicationPdfBase64 } from "@/lib/applicationPdf";
 import { Logo } from "@/components/Logo";
 import { formatMWK, formatDate } from "@/lib/format";
 import {
   Users, CalendarDays, Ticket, DollarSign, Shield, Activity,
   TrendingUp, Search, Crown, Store, UserCheck,
   Eye, EyeOff, Trash2, Mail, Settings as SettingsIcon, Wallet, Save,
-  ClipboardList, CheckCircle2, XCircle, Loader2, LogOut, ArrowLeft, Ban, Bell, Send,
+  ClipboardList, CheckCircle2, XCircle, Loader2, LogOut, ArrowLeft, Ban, Bell, Send, Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +42,8 @@ const AdminDashboard = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
   const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [viewingApp, setViewingApp] = useState<any | null>(null);
+  const [downloadingApp, setDownloadingApp] = useState<string | null>(null);
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
@@ -66,7 +71,7 @@ const AdminDashboard = () => {
       supabase.functions.invoke("admin-users", { body: { action: "list" } }),
       supabase.from("vendor_payouts").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
-      supabase.from("vendor_applications" as any).select("*").eq("status", "pending").order("created_at", { ascending: true }),
+      supabase.from("vendor_applications" as any).select("*").order("created_at", { ascending: false }),
       supabase.from("admin_activity_log" as any).select("*").order("created_at", { ascending: false }).limit(200),
     ]);
 
@@ -254,6 +259,20 @@ const AdminDashboard = () => {
     load();
   };
 
+  const pendingVendorApps = vendorApps.filter((a) => a.status === "pending");
+
+  const downloadApplication = async (app: any) => {
+    setDownloadingApp(app.id);
+    try {
+      const base64 = generateApplicationPdfBase64(app);
+      await saveOrShareFile(base64, `vendor-application-${app.id.slice(0, 8)}.pdf`, app.business_name);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not prepare the application file");
+    } finally {
+      setDownloadingApp(null);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       !search ||
@@ -330,9 +349,9 @@ const AdminDashboard = () => {
             >
               <ClipboardList className="w-4 h-4" />
               Vendor applications
-              {vendorApps.length > 0 && (
+              {pendingVendorApps.length > 0 && (
                 <span className="ml-auto text-[10px] font-bold bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded-full">
-                  {vendorApps.length}
+                  {pendingVendorApps.length}
                 </span>
               )}
             </button>
@@ -389,11 +408,11 @@ const AdminDashboard = () => {
                 ))}
               </div>
 
-              {vendorApps.length > 0 && (
+              {pendingVendorApps.length > 0 && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="font-display font-bold text-amber-200">
-                      {vendorApps.length} vendor application{vendorApps.length !== 1 ? "s" : ""} awaiting review
+                      {pendingVendorApps.length} vendor application{pendingVendorApps.length !== 1 ? "s" : ""} awaiting review
                     </div>
                     <p className="text-sm text-slate-400 mt-1">Approve applicants to grant vendor access and send them a confirmation email.</p>
                   </div>
@@ -405,7 +424,7 @@ const AdminDashboard = () => {
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {[
-                  { label: "Pending vendor apps", value: vendorApps.length, icon: ClipboardList, color: "text-amber-400" },
+                  { label: "Pending vendor apps", value: pendingVendorApps.length, icon: ClipboardList, color: "text-amber-400" },
                   { label: "Active vendors", value: stats.vendorsCount, icon: Store },
                   { label: "Completed transactions", value: stats.paidOrders, icon: UserCheck, color: "text-emerald-400" },
                   { label: "Pending orders", value: stats.pendingOrders, icon: TrendingUp, color: "text-amber-400" },
@@ -502,11 +521,14 @@ const AdminDashboard = () => {
           {tab === "applications" && (
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
               <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                <div className="font-display font-bold">Pending vendor applications</div>
-                <div className="text-xs text-slate-500">{vendorApps.length} pending</div>
+                <div>
+                  <div className="font-display font-bold">Vendor applications</div>
+                  <p className="text-xs text-slate-500 mt-0.5">Full history \u2014 kept for record-keeping and disputes.</p>
+                </div>
+                <div className="text-xs text-slate-500">{vendorApps.length} total \u00b7 {pendingVendorApps.length} pending</div>
               </div>
               {vendorApps.length === 0 ? (
-                <div className="px-5 py-16 text-center text-sm text-slate-500">No pending applications right now.</div>
+                <div className="px-5 py-16 text-center text-sm text-slate-500">No applications yet.</div>
               ) : (
                 <div className="divide-y divide-slate-800">
                   {vendorApps.map((app) => {
@@ -514,28 +536,60 @@ const AdminDashboard = () => {
                     return (
                       <div key={app.id} className="px-5 py-4 flex flex-wrap items-center gap-4">
                         <div className="flex-1 min-w-[200px]">
-                          <div className="font-semibold text-slate-100">{u?.full_name ?? "\u2014"}</div>
-                          <div className="text-sm text-slate-400">{u?.email || app.user_id.slice(0, 8)}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-semibold text-slate-100">{app.business_name || u?.full_name || "\u2014"}</div>
+                            <Badge className={
+                              app.status === "pending"
+                                ? "bg-amber-500/15 text-amber-300 border border-amber-500/40"
+                                : app.status === "approved"
+                                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"
+                                : "bg-slate-700/40 text-slate-400 border border-slate-600/40"
+                            }>
+                              {app.status}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-slate-400">{u?.email || app.contact_email || app.user_id.slice(0, 8)}</div>
                           <div className="text-xs text-slate-500 mt-1">Applied {formatDate(app.created_at)}</div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                            disabled={reviewingApp === app.id}
-                            onClick={() => reviewVendorApp(app.id, true)}
+                            variant="outline"
+                            className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
+                            onClick={() => setViewingApp(app)}
                           >
-                            <CheckCircle2 className="w-4 h-4" /> Approve
+                            View
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
-                            disabled={reviewingApp === app.id}
-                            onClick={() => reviewVendorApp(app.id, false)}
+                            disabled={downloadingApp === app.id}
+                            onClick={() => downloadApplication(app)}
                           >
-                            <XCircle className="w-4 h-4" /> Reject
+                            <Download className="w-4 h-4" /> {downloadingApp === app.id ? "\u2026" : "Download"}
                           </Button>
+                          {app.status === "pending" && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                                disabled={reviewingApp === app.id}
+                                onClick={() => reviewVendorApp(app.id, true)}
+                              >
+                                <CheckCircle2 className="w-4 h-4" /> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
+                                disabled={reviewingApp === app.id}
+                                onClick={() => reviewVendorApp(app.id, false)}
+                              >
+                                <XCircle className="w-4 h-4" /> Reject
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -544,6 +598,43 @@ const AdminDashboard = () => {
               )}
             </div>
           )}
+
+          <Dialog open={!!viewingApp} onOpenChange={(open) => !open && setViewingApp(null)}>
+            <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{viewingApp?.business_name}</DialogTitle>
+              </DialogHeader>
+              {viewingApp && (
+                <div className="space-y-3 text-sm">
+                  {[
+                    ["Status", viewingApp.status],
+                    ["Submitted", formatDate(viewingApp.created_at)],
+                    ["Business type", viewingApp.business_type],
+                    ["Registration #", viewingApp.registration_number],
+                    ["Tax ID", viewingApp.tax_id],
+                    ["Contact name", viewingApp.contact_name],
+                    ["Contact phone", viewingApp.contact_phone],
+                    ["Contact email", viewingApp.contact_email],
+                    ["City", viewingApp.city],
+                    ["Address", viewingApp.address],
+                    ["Event types", viewingApp.event_types],
+                    ["Website / social", viewingApp.website_or_social],
+                    ["ID document type", viewingApp.id_document_type],
+                    ["ID number", viewingApp.id_number],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4 border-b border-slate-800 pb-2">
+                      <span className="text-slate-500 shrink-0">{label}</span>
+                      <span className="text-slate-200 text-right">{value || "\u2014"}</span>
+                    </div>
+                  ))}
+                  <div>
+                    <div className="text-slate-500 mb-1">Description</div>
+                    <p className="text-slate-200">{viewingApp.description}</p>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* USERS */}
           {tab === "users" && (
@@ -732,8 +823,8 @@ const AdminDashboard = () => {
                       const vendorLabel = users.find((u) => u.id === p.vendor_id);
                       return (
                         <tr key={p.id} className="border-t border-slate-800">
-                          <td className="p-4 text-slate-200">{vendorLabel?.full_name ?? vendorLabel?.email ?? p.vendor_id.slice(0, 8)}</td>
-                          <td className="p-4 font-mono text-xs text-slate-400">{p.order_id.slice(0, 8)}</td>
+                          <td className="p-4 text-slate-200">{vendorLabel?.full_name ?? vendorLabel?.email ?? p.vendor_id?.slice(0, 8) ?? "\u2014"}</td>
+                          <td className="p-4 font-mono text-xs text-slate-400">{p.order_id?.slice(0, 8) ?? "\u2014"}</td>
                           <td className="p-4">{p.tickets_count}</td>
                           <td className="p-4">{formatMWK(p.gross_mwk)}</td>
                           <td className="p-4 text-amber-400">{formatMWK(p.fee_mwk)}</td>
@@ -896,5 +987,9 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+
+
+
 
 

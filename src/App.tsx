@@ -2,6 +2,7 @@
 import { AnimatePresence } from "framer-motion";
 import { Capacitor } from "@capacitor/core";
 import { SplashScreen } from "@/components/SplashScreen";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -96,6 +97,7 @@ const App = () => {
   return (
     <>
       <AnimatePresence>{showSplash && <SplashScreen />}</AnimatePresence>
+      <UpdatePrompt />
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>
@@ -116,6 +118,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
 
 const TermsOfService = () => (
@@ -20,7 +20,7 @@ const TermsOfService = () => (
       <p>
         TikitiMW connects event organisers (&quot;Organisers&quot;) with ticket buyers (&quot;Customers&quot;). We provide
         the technology to list events, sell tickets, process payments through PayChangu, issue QR tickets,
-        and check in attendees. TikitiMW is a platform — unless stated otherwise, we are not the organiser
+        and check in attendees. TikitiMW is a platform â€” unless stated otherwise, we are not the organiser
         of events listed by third parties.
       </p>
     </LegalSection>
@@ -40,7 +40,7 @@ const TermsOfService = () => (
     <LegalSection title="4. Buying tickets">
       <p>
         Ticket prices, availability, and event details are set by Organisers. We display this information
-        in good faith but do not guarantee accuracy — contact the Organiser if details change.
+        in good faith but do not guarantee accuracy â€” contact the Organiser if details change.
       </p>
       <p>
         A ticket order is confirmed only after successful payment. Pending orders may expire if payment
@@ -48,7 +48,7 @@ const TermsOfService = () => (
       </p>
       <p>
         QR tickets are personal and may be checked against the purchaser&apos;s name or phone at the gate.
-        Do not share ticket screenshots publicly — duplicated use may be refused.
+        Do not share ticket screenshots publicly â€” duplicated use may be refused.
       </p>
       <p>
         Each ticket is valid for one entry unless the Organiser states otherwise. Lost or deleted tickets
@@ -74,7 +74,7 @@ const TermsOfService = () => (
     <LegalSection title="6. Refunds and cancellations">
       <p>
         Refund policies are set by the Organiser unless required by law. TikitiMW does not automatically
-        issue refunds for cancelled events — Organisers are responsible for communicating cancellation terms
+        issue refunds for cancelled events â€” Organisers are responsible for communicating cancellation terms
         and arranging refunds where applicable.
       </p>
       <p>
@@ -89,7 +89,24 @@ const TermsOfService = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="7. Organiser responsibilities">
+    <LegalSection title="7. Payouts and platform fees">
+      <p>
+        TikitiMW deducts a platform fee (a percentage plus a flat amount per ticket, shown in your
+        Organiser dashboard) from each paid order before calculating your payout.
+      </p>
+      <p>
+        Organisers may request withdrawal of their available balance at any time from the Organiser
+        dashboard. Requests are reviewed and processed manually by TikitiMW to your chosen mobile money
+        or bank account \u2014 you are responsible for ensuring the account details you provide are accurate.
+        TikitiMW is not liable for funds sent to an incorrect account you supplied.
+      </p>
+      <p>
+        Payout timing is not guaranteed and may take longer during payment provider delays or additional
+        verification.
+      </p>
+    </LegalSection>
+
+    <LegalSection title="8. Organiser responsibilities">
       <p>Organisers must provide accurate event information, honour valid tickets, and comply with applicable laws.</p>
       <p>Organisers must not list fraudulent, illegal, or misleading events.</p>
       <p>Organisers are responsible for venue capacity, safety, and attendee experience at their events.</p>
@@ -97,7 +114,7 @@ const TermsOfService = () => (
       <p>TikitiMW may remove events, withhold payouts, or suspend Organisers who breach these Terms.</p>
     </LegalSection>
 
-    <LegalSection title="8. Prohibited conduct">
+    <LegalSection title="9. Prohibited conduct">
       <p>Reselling tickets in violation of Organiser rules or applicable law.</p>
       <p>Using bots, scrapers, or automated tools to purchase tickets in bulk.</p>
       <p>Attempting to bypass payment, forge QR codes, or reuse scanned tickets.</p>
@@ -105,7 +122,7 @@ const TermsOfService = () => (
       <p>Interfering with the security or operation of the Service.</p>
     </LegalSection>
 
-    <LegalSection title="9. Intellectual property">
+    <LegalSection title="10. Intellectual property">
       <p>
         TikitiMW branding, software, and design are owned by us or our licensors. You may not copy or
         reverse-engineer the platform without permission.
@@ -116,7 +133,7 @@ const TermsOfService = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="10. Disclaimers">
+    <LegalSection title="11. Disclaimers">
       <p>
         THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot;. WE DO NOT WARRANT UNINTERRUPTED ACCESS,
         ERROR-FREE OPERATION, OR THAT EVENTS WILL OCCUR AS ADVERTISED.
@@ -127,7 +144,7 @@ const TermsOfService = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="11. Limitation of liability">
+    <LegalSection title="12. Limitation of liability">
       <p>
         To the maximum extent permitted by applicable law, TikitiMW&apos;s total liability for any claim arising
         from your use of the Service is limited to the amount you paid to TikitiMW for the relevant ticket
@@ -139,7 +156,7 @@ const TermsOfService = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="12. Dispute resolution">
+    <LegalSection title="13. Dispute resolution">
       <p>
         These Terms are governed by the laws of the Republic of Malawi. Parties agree to attempt good-faith
         resolution before pursuing formal remedies. Courts in Malawi shall have jurisdiction unless otherwise
@@ -147,7 +164,7 @@ const TermsOfService = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="13. Changes">
+    <LegalSection title="14. Changes">
       <p>
         We may modify these Terms at any time. Material changes will be posted on this page. Continued use
         after changes constitutes acceptance. If you disagree, stop using the Service and contact us regarding
@@ -155,7 +172,7 @@ const TermsOfService = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="14. Contact">
+    <LegalSection title="15. Contact">
       <p>
         Questions about these Terms:{" "}
         <a href="mailto:legal@tikitimw.com" className="text-primary hover:underline">legal@tikitimw.com</a>
@@ -168,3 +185,4 @@ const TermsOfService = () => (
 );
 
 export default TermsOfService;
+

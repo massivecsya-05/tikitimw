@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.png", "pwa-icons/apple-touch-icon.png"],
       manifest: {
         name: "TikitiMW \u2014 Event Tickets for Malawi",
@@ -49,3 +49,4 @@ export default defineConfig({
     },
   },
 });
+
