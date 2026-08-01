@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, formatDate, formatMWK } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil, Wallet, ScanLine } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil, Wallet, ScanLine, Banknote } from "lucide-react";
 import { PromoCodes } from "@/components/organiser/PromoCodes";
 import { generateId } from "@/lib/uuid";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -28,6 +28,12 @@ const VendorDashboard = () => {
   const [sales, setSales] = useState<Record<string, EventSales>>({});
   const [stats, setStats] = useState({ revenue: 0, sold: 0, eventsCount: 0, remaining: 0, checkInRate: 0 });
   const [payouts, setPayouts] = useState<any[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<any[]>([]);
+  const [payoutProfile, setPayoutProfile] = useState<{ payout_method: string | null; payout_account_name: string | null; payout_account_number: string | null } | null>(null);
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [showRequestPayout, setShowRequestPayout] = useState(false);
+  const [savingPaymentDetails, setSavingPaymentDetails] = useState(false);
+  const [requestingPayout, setRequestingPayout] = useState(false);
   const [dailySales, setDailySales] = useState<DailySale[]>([]);
   const [tierBreakdown, setTierBreakdown] = useState<TierBreakdown[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -155,6 +161,12 @@ const VendorDashboard = () => {
     }
     const { data: po } = await supabase.from("vendor_payouts").select("*").eq("vendor_id", user.id).order("created_at", { ascending: false });
     setPayouts(po ?? []);
+
+    const { data: prof } = await supabase.from("profiles").select("payout_method, payout_account_name, payout_account_number").eq("id", user.id).maybeSingle();
+    setPayoutProfile(prof ?? null);
+
+    const { data: reqs } = await supabase.from("payout_requests" as any).select("*").eq("vendor_id", user.id).order("requested_at", { ascending: false });
+    setPayoutRequests((reqs as any[]) ?? []);
   };
 
   useEffect(() => { refresh(); }, [user]);
@@ -255,6 +267,57 @@ const VendorDashboard = () => {
       refresh();
     } catch (err: any) { toast.error(err.message); }
     finally { setSavingEdit(false); }
+  };
+
+  const savePaymentDetails = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setSavingPaymentDetails(true);
+    const details = {
+      payout_method: fd.get("payout_method") as string,
+      payout_account_name: fd.get("payout_account_name") as string,
+      payout_account_number: fd.get("payout_account_number") as string,
+    };
+    const { error } = await supabase.from("profiles").update(details).eq("id", user.id);
+    setSavingPaymentDetails(false);
+    if (error) return toast.error(error.message);
+    setPayoutProfile(details);
+    setShowPaymentDetails(false);
+    toast.success("Payment details saved");
+  };
+
+  const pendingBalance = payouts.filter((p) => p.status === "pending").reduce((s, p) => s + Number(p.net_mwk), 0);
+  const hasPaymentDetails = !!(payoutProfile?.payout_method && payoutProfile?.payout_account_name && payoutProfile?.payout_account_number);
+  const hasOpenRequest = payoutRequests.some((r) => r.status === "pending");
+
+  const requestPayout = async () => {
+    if (!hasPaymentDetails || pendingBalance <= 0) return;
+    setRequestingPayout(true);
+    try {
+      const { error } = await supabase.from("payout_requests" as any).insert({
+        vendor_id: user.id,
+        amount_mwk: pendingBalance,
+        payment_method: payoutProfile!.payout_method,
+        payment_account_name: payoutProfile!.payout_account_name,
+        payment_account_number: payoutProfile!.payout_account_number,
+        status: "pending",
+      });
+      if (error) throw error;
+      await supabase.from("admin_activity_log" as any).insert({
+        actor_id: user.id,
+        actor_email: user.email ?? null,
+        action: "payout_requested",
+        target_type: "payout_request",
+        target_label: formatMWK(pendingBalance),
+      });
+      toast.success("Payout requested \u2014 an admin will review it shortly");
+      setShowRequestPayout(false);
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not submit payout request");
+    } finally {
+      setRequestingPayout(false);
+    }
   };
 
   const toLocalInput = (iso: string) => {
@@ -511,14 +574,39 @@ const VendorDashboard = () => {
         {/* Payouts */}
         {payouts.length > 0 && (
           <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-border flex items-center gap-3">
+            <div className="px-5 py-4 border-b border-border flex flex-wrap items-center gap-3">
               <Wallet className="w-4 h-4 text-primary" />
               <div className="font-display font-bold flex-1">Earnings & payouts</div>
               <div className="text-xs text-muted-foreground">
-                Pending: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "pending").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
-                {" Â· "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
+                Pending: <span className="font-bold text-foreground">{formatMWK(pendingBalance)}</span>
+                {" \u00b7 "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
               </div>
+              <Button size="sm" variant="outline" onClick={() => setShowPaymentDetails(true)}>
+                <Banknote className="w-4 h-4" /> {hasPaymentDetails ? "Edit payment details" : "Set payment details"}
+              </Button>
+              <Button
+                size="sm"
+                variant="hero"
+                disabled={!hasPaymentDetails || pendingBalance <= 0 || hasOpenRequest}
+                onClick={() => setShowRequestPayout(true)}
+              >
+                {hasOpenRequest ? "Request pending" : "Request payout"}
+              </Button>
             </div>
+            {payoutRequests.length > 0 && (
+              <div className="px-5 py-3 border-b border-border bg-muted/10 text-xs space-y-1">
+                {payoutRequests.slice(0, 3).map((r) => (
+                  <div key={r.id} className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      Requested {formatDate(r.requested_at)} \u00b7 {formatMWK(r.amount_mwk)}
+                    </span>
+                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${r.status === "paid" ? "bg-secondary/15 text-secondary" : r.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-amber-500/15 text-amber-600"}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground bg-muted/30">
@@ -536,7 +624,7 @@ const VendorDashboard = () => {
                   {payouts.map(p => (
                     <tr key={p.id} className="border-t border-border">
                       <td className="p-3 text-muted-foreground">{formatDate(p.created_at)}</td>
-                      <td className="p-3 font-mono text-xs">{p.order_id.slice(0, 8)}</td>
+                      <td className="p-3 font-mono text-xs">{p.order_id?.slice(0, 8) ?? "\u2014"}</td>
                       <td className="p-3">{p.tickets_count}</td>
                       <td className="p-3">{formatMWK(p.gross_mwk)}</td>
                       <td className="p-3 text-amber-600">âˆ’{formatMWK(p.fee_mwk)}</td>
@@ -629,11 +717,168 @@ const VendorDashboard = () => {
           </DialogContent>
         </Dialog>
       </div>
+      <Dialog open={showPaymentDetails} onOpenChange={setShowPaymentDetails}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Payment details</DialogTitle></DialogHeader>
+          <form onSubmit={savePaymentDetails} className="space-y-4">
+            <div>
+              <Label>Payout method *</Label>
+              <Select name="payout_method" defaultValue={payoutProfile?.payout_method ?? "airtel_money"} required>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="airtel_money">Airtel Money</SelectItem>
+                  <SelectItem value="tnm_mpamba">TNM Mpamba</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Account name *</Label>
+              <Input name="payout_account_name" required defaultValue={payoutProfile?.payout_account_name ?? ""} />
+            </div>
+            <div>
+              <Label>Account / phone number *</Label>
+              <Input name="payout_account_number" required defaultValue={payoutProfile?.payout_account_number ?? ""} />
+            </div>
+            <Button type="submit" variant="hero" className="w-full min-h-12" disabled={savingPaymentDetails}>
+              {savingPaymentDetails ? "Saving\u2026" : "Save"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRequestPayout} onOpenChange={setShowRequestPayout}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Request payout</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p>
+              You are requesting your full pending balance of{" "}
+              <span className="font-display font-bold text-primary">{formatMWK(pendingBalance)}</span>.
+            </p>
+            <div className="rounded-xl bg-muted/40 p-3 space-y-1 text-xs text-muted-foreground">
+              <div>Method: {payoutProfile?.payout_method}</div>
+              <div>Account name: {payoutProfile?.payout_account_name}</div>
+              <div>Account number: {payoutProfile?.payout_account_number}</div>
+            </div>
+            <p className="text-xs text-muted-foreground">An admin will review and process this manually.</p>
+            <Button variant="hero" className="w-full min-h-12" disabled={requestingPayout} onClick={requestPayout}>
+              {requestingPayout ? "Submitting\u2026" : "Confirm request"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showPaymentDetails} onOpenChange={setShowPaymentDetails}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Payment details</DialogTitle></DialogHeader>
+          <form onSubmit={savePaymentDetails} className="space-y-4">
+            <div>
+              <Label>Payout method *</Label>
+              <Select name="payout_method" defaultValue={payoutProfile?.payout_method ?? "airtel_money"} required>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="airtel_money">Airtel Money</SelectItem>
+                  <SelectItem value="tnm_mpamba">TNM Mpamba</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Account name *</Label>
+              <Input name="payout_account_name" required defaultValue={payoutProfile?.payout_account_name ?? ""} />
+            </div>
+            <div>
+              <Label>Account / phone number *</Label>
+              <Input name="payout_account_number" required defaultValue={payoutProfile?.payout_account_number ?? ""} />
+            </div>
+            <Button type="submit" variant="hero" className="w-full min-h-12" disabled={savingPaymentDetails}>
+              {savingPaymentDetails ? "Saving\u2026" : "Save"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRequestPayout} onOpenChange={setShowRequestPayout}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Request payout</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p>
+              You are requesting your full pending balance of{" "}
+              <span className="font-display font-bold text-primary">{formatMWK(pendingBalance)}</span>.
+            </p>
+            <div className="rounded-xl bg-muted/40 p-3 space-y-1 text-xs text-muted-foreground">
+              <div>Method: {payoutProfile?.payout_method}</div>
+              <div>Account name: {payoutProfile?.payout_account_name}</div>
+              <div>Account number: {payoutProfile?.payout_account_number}</div>
+            </div>
+            <p className="text-xs text-muted-foreground">An admin will review and process this manually.</p>
+            <Button variant="hero" className="w-full min-h-12" disabled={requestingPayout} onClick={requestPayout}>
+              {requestingPayout ? "Submitting\u2026" : "Confirm request"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showPaymentDetails} onOpenChange={setShowPaymentDetails}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Payment details</DialogTitle></DialogHeader>
+          <form onSubmit={savePaymentDetails} className="space-y-4">
+            <div>
+              <Label>Payout method *</Label>
+              <Select name="payout_method" defaultValue={payoutProfile?.payout_method ?? "airtel_money"} required>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="airtel_money">Airtel Money</SelectItem>
+                  <SelectItem value="tnm_mpamba">TNM Mpamba</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Account name *</Label>
+              <Input name="payout_account_name" required defaultValue={payoutProfile?.payout_account_name ?? ""} />
+            </div>
+            <div>
+              <Label>Account / phone number *</Label>
+              <Input name="payout_account_number" required defaultValue={payoutProfile?.payout_account_number ?? ""} />
+            </div>
+            <Button type="submit" variant="hero" className="w-full min-h-12" disabled={savingPaymentDetails}>
+              {savingPaymentDetails ? "Saving\u2026" : "Save"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRequestPayout} onOpenChange={setShowRequestPayout}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Request payout</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p>
+              You are requesting your full pending balance of{" "}
+              <span className="font-display font-bold text-primary">{formatMWK(pendingBalance)}</span>.
+            </p>
+            <div className="rounded-xl bg-muted/40 p-3 space-y-1 text-xs text-muted-foreground">
+              <div>Method: {payoutProfile?.payout_method}</div>
+              <div>Account name: {payoutProfile?.payout_account_name}</div>
+              <div>Account number: {payoutProfile?.payout_account_number}</div>
+            </div>
+            <p className="text-xs text-muted-foreground">An admin will review and process this manually.</p>
+            <Button variant="hero" className="w-full min-h-12" disabled={requestingPayout} onClick={requestPayout}>
+              {requestingPayout ? "Submitting\u2026" : "Confirm request"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 };
 
 export default VendorDashboard;
+
+
+
+
+
+
+
 
 
 

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit" | "broadcast";
+type Tab = "overview" | "users" | "applications" | "events" | "payouts" | "settings" | "audit" | "broadcast" | "payoutRequests";
 
 const AdminDashboard = () => {
   const { user, roles, loading, signOut } = useAuth();
@@ -42,6 +42,8 @@ const AdminDashboard = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
   const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<any[]>([]);
+  const [processingRequest, setProcessingRequest] = useState<string | null>(null);
   const [viewingApp, setViewingApp] = useState<any | null>(null);
   const [downloadingApp, setDownloadingApp] = useState<string | null>(null);
   const [broadcastTitle, setBroadcastTitle] = useState("");
@@ -62,6 +64,7 @@ const AdminDashboard = () => {
       { data: settingsData },
       { data: vendorAppsData },
       { data: auditData },
+      { data: payoutReqData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("events").select("*").order("created_at", { ascending: false }),
@@ -73,6 +76,7 @@ const AdminDashboard = () => {
       supabase.from("platform_settings").select("fee_percent,fee_flat_mwk").eq("id", true).maybeSingle(),
       supabase.from("vendor_applications" as any).select("*").order("created_at", { ascending: false }),
       supabase.from("admin_activity_log" as any).select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("payout_requests" as any).select("*").order("requested_at", { ascending: false }),
     ]);
 
     const rolesByUser: Record<string, string[]> = {};
@@ -84,6 +88,7 @@ const AdminDashboard = () => {
     setPayouts(payoutsData ?? []);
     setVendorApps((vendorAppsData as any[]) ?? []);
     setAuditLog((auditData as any[]) ?? []);
+    setPayoutRequests((payoutReqData as any[]) ?? []);
     if (settingsData) setSettingsRow({ fee_percent: Number(settingsData.fee_percent), fee_flat_mwk: Number(settingsData.fee_flat_mwk) });
 
     const paid = (orders ?? []).filter((o) => o.status === "paid");
@@ -252,6 +257,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const pendingPayoutRequests = payoutRequests.filter((r) => r.status === "pending");
+
+  const reviewPayoutRequest = async (req: any, approve: boolean) => {
+    setProcessingRequest(req.id);
+    const { error } = await supabase.from("payout_requests" as any).update({
+      status: approve ? "paid" : "rejected",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user!.id,
+    }).eq("id", req.id);
+    setProcessingRequest(null);
+    if (error) return toast.error(error.message);
+    await supabase.from("admin_activity_log" as any).insert({
+      actor_id: user!.id,
+      actor_email: user!.email ?? null,
+      action: approve ? "payout_request_paid" : "payout_request_rejected",
+      target_type: "payout_request",
+      target_id: req.id,
+      target_label: formatMWK(req.amount_mwk),
+    });
+    toast.success(approve ? "Payout marked as paid" : "Payout request rejected");
+    load();
+  };
+
   const markPayoutPaid = async (id: string) => {
     const { error } = await supabase.from("vendor_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", id);
     if (error) return toast.error(error.message);
@@ -360,6 +388,22 @@ const AdminDashboard = () => {
             {navItem("settings", "Platform fees", SettingsIcon)}
             {navItem("audit", "Activity log", Activity)}
             {navItem("broadcast", "Send notification", Bell)}
+            <button
+              onClick={() => setTab("payoutRequests")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium transition-smooth ${
+                tab === "payoutRequests"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                  : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+              }`}
+            >
+              <Wallet className="w-4 h-4" />
+              Payout requests
+              {pendingPayoutRequests.length > 0 && (
+                <span className="ml-auto text-[10px] font-bold bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded-full">
+                  {pendingPayoutRequests.length}
+                </span>
+              )}
+            </button>
           </div>
           <div className="mt-6 pt-4 border-t border-slate-800 px-2">
             <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Quick links</div>
@@ -380,6 +424,7 @@ const AdminDashboard = () => {
                 {tab === "settings" && "Platform fees"}
                 {tab === "audit" && "Admin activity log"}
                 {tab === "broadcast" && "Send notification"}
+                {tab === "payoutRequests" && "Payout requests"}
               </h1>
             </div>
             <Badge className="bg-accent/15 text-accent border border-accent/30">
@@ -980,6 +1025,69 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* PAYOUT REQUESTS */}
+          {tab === "payoutRequests" && (
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl">
+              <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div className="font-display font-bold">Vendor payout requests</div>
+                <div className="text-xs text-slate-500">{payoutRequests.length} total \u00b7 {pendingPayoutRequests.length} pending</div>
+              </div>
+              {payoutRequests.length === 0 ? (
+                <div className="px-5 py-16 text-center text-sm text-slate-500">No payout requests yet.</div>
+              ) : (
+                <div className="divide-y divide-slate-800">
+                  {payoutRequests.map((r) => {
+                    const vendorLabel = users.find((u) => u.id === r.vendor_id);
+                    return (
+                      <div key={r.id} className="px-5 py-4 flex flex-wrap items-center gap-4">
+                        <div className="flex-1 min-w-[220px]">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-100">{vendorLabel?.full_name ?? vendorLabel?.email ?? r.vendor_id?.slice(0, 8) ?? "\u2014"}</span>
+                            <Badge className={
+                              r.status === "pending"
+                                ? "bg-amber-500/15 text-amber-300 border border-amber-500/40"
+                                : r.status === "paid"
+                                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"
+                                : "bg-slate-700/40 text-slate-400 border border-slate-600/40"
+                            }>
+                              {r.status}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-slate-400 mt-1">
+                            {r.payment_method} \u00b7 {r.payment_account_name} \u00b7 {r.payment_account_number}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">Requested {formatDate(r.requested_at)}</div>
+                        </div>
+                        <div className="font-display font-bold text-lg text-emerald-400">{formatMWK(r.amount_mwk)}</div>
+                        {r.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                              disabled={processingRequest === r.id}
+                              onClick={() => reviewPayoutRequest(r, true)}
+                            >
+                              <CheckCircle2 className="w-4 h-4" /> Mark paid
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200"
+                              disabled={processingRequest === r.id}
+                              onClick={() => reviewPayoutRequest(r, false)}
+                            >
+                              <XCircle className="w-4 h-4" /> Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
         </main>
       </div>
     </div>
@@ -987,6 +1095,7 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
 
 
 
