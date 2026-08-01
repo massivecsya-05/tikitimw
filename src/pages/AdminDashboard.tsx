@@ -130,10 +130,22 @@ const AdminDashboard = () => {
   const grantRole = async (uid: string, role: "vendor" | "admin") => {
     const { error } = await supabase.from("user_roles").insert({ user_id: uid, role });
     if (error && !error.message.includes("duplicate")) return toast.error(error.message);
+    const target = users.find((u) => u.id === uid);
+    await supabase.from("admin_activity_log" as any).insert({
+      actor_id: user!.id, actor_email: user!.email ?? null,
+      action: "role_granted", target_type: "user", target_id: uid,
+      target_label: `${target?.email ?? uid.slice(0, 8)} \u2192 ${role}`,
+    });
     toast.success(`Granted ${role}`); load();
   };
   const revokeRole = async (uid: string, role: "vendor" | "admin") => {
     await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", role);
+    const target = users.find((u) => u.id === uid);
+    await supabase.from("admin_activity_log" as any).insert({
+      actor_id: user!.id, actor_email: user!.email ?? null,
+      action: "role_revoked", target_type: "user", target_id: uid,
+      target_label: `${target?.email ?? uid.slice(0, 8)} \u2212 ${role}`,
+    });
     toast.success(`Revoked ${role}`); load();
   };
 
@@ -283,6 +295,10 @@ const AdminDashboard = () => {
   const markPayoutPaid = async (id: string) => {
     const { error } = await supabase.from("vendor_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", id);
     if (error) return toast.error(error.message);
+    await supabase.from("admin_activity_log" as any).insert({
+      actor_id: user!.id, actor_email: user!.email ?? null,
+      action: "vendor_payout_marked_paid", target_type: "vendor_payout", target_id: id,
+    });
     toast.success("Payout marked as paid");
     load();
   };
@@ -956,12 +972,13 @@ const AdminDashboard = () => {
                           <tr key={row.id} className="border-t border-slate-800 align-top">
                             <td className="p-4 text-slate-400 whitespace-nowrap">{formatDate(row.created_at)}</td>
                             <td className="p-4 text-slate-300">
-                              <div className="truncate max-w-[220px]">{row.actor_email ?? "\u2014"}</div>
+                              <div className="truncate max-w-[220px]">{row.actor_email ?? users.find((u) => u.id === row.actor_id)?.email ?? "\u2014"}</div>
                               <div className="text-xs text-slate-500 font-mono">{row.actor_id?.slice(0, 8) ?? "\u2014"}</div>
                             </td>
                             <td className="p-4">
                               <Badge className={failed
                                 ? "bg-rose-500/15 text-rose-300 border border-rose-500/40"
+                                : row.action?.includes("signed") ? "bg-slate-700/40 text-slate-300 border border-slate-600/40"
                                 : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"}>
                                 {String(row.action).replace(/_/g, " ")}
                               </Badge>
@@ -1095,6 +1112,10 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+
+
+
 
 
 

@@ -213,6 +213,14 @@ const VendorDashboard = () => {
         if (e2) throw e2;
       }
       toast.success("Event published! ðŸŽ‰");
+      await supabase.from("admin_activity_log" as any).insert({
+        actor_id: user.id,
+        actor_email: user.email ?? null,
+        action: "event_created",
+        target_type: "event",
+        target_id: ev.id,
+        target_label: ev.title,
+      });
       setOpen(false);
       setTiers([{ name: "Regular", price: "", quantity: "" }]);
       setBannerFile(null);
@@ -263,6 +271,14 @@ const VendorDashboard = () => {
       }).eq("id", editing.id);
       if (error) throw error;
       toast.success("Event updated");
+      await supabase.from("admin_activity_log" as any).insert({
+        actor_id: user.id,
+        actor_email: user.email ?? null,
+        action: "event_updated",
+        target_type: "event",
+        target_id: editing.id,
+        target_label: fd.get("title") as string,
+      });
       closeEdit();
       refresh();
     } catch (err: any) { toast.error(err.message); }
@@ -872,6 +888,8 @@ const VendorDashboard = () => {
 };
 
 export default VendorDashboard;
+
+
 
 
 
