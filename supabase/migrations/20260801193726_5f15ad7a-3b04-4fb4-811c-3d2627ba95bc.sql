@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.log_order_paid() FROM anon, authenticated, PUBLIC;
