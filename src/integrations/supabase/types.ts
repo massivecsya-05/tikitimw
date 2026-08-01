@@ -327,6 +327,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_requests: {
+        Row: {
+          admin_note: string | null
+          amount_mwk: number
+          id: string
+          payment_account_name: string
+          payment_account_number: string
+          payment_method: string
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          vendor_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_mwk: number
+          id?: string
+          payment_account_name: string
+          payment_account_number: string
+          payment_method: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          amount_mwk?: number
+          id?: string
+          payment_account_name?: string
+          payment_account_number?: string
+          payment_method?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          vendor_id?: string | null
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           fee_flat_mwk: number
@@ -354,6 +396,9 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          payout_account_name: string | null
+          payout_account_number: string | null
+          payout_method: string | null
           phone: string | null
           updated_at: string
         }
@@ -362,6 +407,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          payout_account_name?: string | null
+          payout_account_number?: string | null
+          payout_method?: string | null
           phone?: string | null
           updated_at?: string
         }
@@ -370,6 +418,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          payout_account_name?: string | null
+          payout_account_number?: string | null
+          payout_method?: string | null
           phone?: string | null
           updated_at?: string
         }
