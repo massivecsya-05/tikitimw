@@ -588,41 +588,45 @@ const VendorDashboard = () => {
         )}
 
         {/* Payouts */}
-        {payouts.length > 0 && (
-          <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-border flex flex-wrap items-center gap-3">
-              <Wallet className="w-4 h-4 text-primary" />
-              <div className="font-display font-bold flex-1">Earnings & payouts</div>
-              <div className="text-xs text-muted-foreground">
-                Pending: <span className="font-bold text-foreground">{formatMWK(pendingBalance)}</span>
-                {" \u00b7 "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setShowPaymentDetails(true)}>
-                <Banknote className="w-4 h-4" /> {hasPaymentDetails ? "Edit payment details" : "Set payment details"}
-              </Button>
-              <Button
-                size="sm"
-                variant="hero"
-                disabled={!hasPaymentDetails || pendingBalance <= 0 || hasOpenRequest}
-                onClick={() => setShowRequestPayout(true)}
-              >
-                {hasOpenRequest ? "Request pending" : "Request payout"}
-              </Button>
+        <div className="mb-10 rounded-2xl border border-border bg-gradient-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-border flex flex-wrap items-center gap-3">
+            <Wallet className="w-4 h-4 text-primary" />
+            <div className="font-display font-bold flex-1">Earnings & payouts</div>
+            <div className="text-xs text-muted-foreground">
+              Pending: <span className="font-bold text-foreground">{formatMWK(pendingBalance)}</span>
+              {" \u00b7 "}Paid: <span className="font-bold text-foreground">{formatMWK(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.net_mwk), 0))}</span>
             </div>
-            {payoutRequests.length > 0 && (
-              <div className="px-5 py-3 border-b border-border bg-muted/10 text-xs space-y-1">
-                {payoutRequests.slice(0, 3).map((r) => (
-                  <div key={r.id} className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      Requested {formatDate(r.requested_at)} \u00b7 {formatMWK(r.amount_mwk)}
-                    </span>
-                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${r.status === "paid" ? "bg-secondary/15 text-secondary" : r.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-amber-500/15 text-amber-600"}`}>
-                      {r.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Button size="sm" variant="outline" onClick={() => setShowPaymentDetails(true)}>
+              <Banknote className="w-4 h-4" /> {hasPaymentDetails ? "Edit payment details" : "Set payment details"}
+            </Button>
+            <Button
+              size="sm"
+              variant="hero"
+              disabled={!hasPaymentDetails || pendingBalance <= 0 || hasOpenRequest}
+              onClick={() => setShowRequestPayout(true)}
+            >
+              {hasOpenRequest ? "Request pending" : "Request payout"}
+            </Button>
+          </div>
+          {payoutRequests.length > 0 && (
+            <div className="px-5 py-3 border-b border-border bg-muted/10 text-xs space-y-1">
+              {payoutRequests.slice(0, 3).map((r) => (
+                <div key={r.id} className="flex items-center justify-between">
+                  <span className="text-muted-foreground">
+                    Requested {formatDate(r.requested_at)} \u00b7 {formatMWK(r.amount_mwk)}
+                  </span>
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${r.status === "paid" ? "bg-secondary/15 text-secondary" : r.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-amber-500/15 text-amber-600"}`}>
+                    {r.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {payouts.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+              No sales yet. Once an order for one of your events is paid, it'll show up here.
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground bg-muted/30">
@@ -651,11 +655,8 @@ const VendorDashboard = () => {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 border-t border-border bg-muted/20 text-xs text-muted-foreground">
-              To withdraw your pending balance, contact the platform admin. Payouts are processed manually via bank or mobile money.
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <Tabs defaultValue="all">
           <TabsList><TabsTrigger value="all">All events</TabsTrigger><TabsTrigger value="published">Published</TabsTrigger><TabsTrigger value="draft">Drafts</TabsTrigger></TabsList>
@@ -888,6 +889,7 @@ const VendorDashboard = () => {
 };
 
 export default VendorDashboard;
+
 
 
 
