@@ -2,7 +2,7 @@
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteEvent } from "@/lib/api";
+import { deleteEvent, fetchAttendeesForEvents } from "@/lib/api";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, formatDate, formatMWK } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil, Wallet, ScanLine, Banknote } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Ticket, DollarSign, Eye, EyeOff, QrCode, Pencil, Wallet, ScanLine, Banknote, Users } from "lucide-react";
 import { PromoCodes } from "@/components/organiser/PromoCodes";
 import { generateId } from "@/lib/uuid";
+import { generateAttendeePdfBase64 } from "@/lib/attendeePdf";
+import { saveOrShareFile } from "@/lib/nativeLinks";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 type EventSales = { revenue: number; sold: number };
@@ -51,6 +53,7 @@ const VendorDashboard = () => {
   const [editBannerFile, setEditBannerFile] = useState<File | null>(null);
   const [editBannerPreview, setEditBannerPreview] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [exportingAttendees, setExportingAttendees] = useState<string | null>(null);
 
   const onBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
@@ -336,6 +339,23 @@ const VendorDashboard = () => {
     }
   };
 
+  const exportAttendees = async (eventIds: string[], title: string, key: string) => {
+    setExportingAttendees(key);
+    try {
+      const rows = await fetchAttendeesForEvents(eventIds);
+      if (rows.length === 0) {
+        toast.message("No paid attendees to export yet");
+        return;
+      }
+      const base64 = generateAttendeePdfBase64(rows, title);
+      await saveOrShareFile(base64, `${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-attendees.pdf`, title);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not export attendee list");
+    } finally {
+      setExportingAttendees(null);
+    }
+  };
+
   const toLocalInput = (iso: string) => {
     const d = new Date(iso);
     const off = d.getTimezoneOffset();
@@ -370,6 +390,15 @@ const VendorDashboard = () => {
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="lg" className="min-h-12"><Link to="/organiser/scan"><QrCode/> Scanner</Link></Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="min-h-12"
+              disabled={exportingAttendees === "all" || events.length === 0}
+              onClick={() => exportAttendees(events.map((e) => e.id), "All events \u2014 attendees", "all")}
+            >
+              <Users className="w-4 h-4" /> {exportingAttendees === "all" ? "Exporting\u2026" : "Export all attendees"}
+            </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild><Button variant="hero" size="lg"><Plus/> Create event</Button></DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -679,6 +708,14 @@ const VendorDashboard = () => {
                         </div>
                       </div>
                       <div className={`text-xs font-bold px-2 py-1 rounded-md ${ev.status === "published" ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"}`}>{ev.status}</div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={exportingAttendees === ev.id}
+                        onClick={() => exportAttendees([ev.id], ev.title, ev.id)}
+                      >
+                        <Users className="w-4 h-4"/> {exportingAttendees === ev.id ? "\u2026" : "Attendees"}
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => openEdit(ev)}><Pencil className="w-4 h-4"/>Edit</Button>
                       <Button size="sm" variant="outline" onClick={() => toggleStatus(ev)}>
                         {ev.status === "published" ? <><EyeOff className="w-4 h-4"/>Unpublish</> : <><Eye className="w-4 h-4"/>Publish</>}
@@ -889,6 +926,9 @@ const VendorDashboard = () => {
 };
 
 export default VendorDashboard;
+
+
+
 
 
 

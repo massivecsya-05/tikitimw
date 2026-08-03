@@ -409,3 +409,31 @@ export async function sendBroadcastNotification(title: string, body: string, cre
     .insert({ type: "broadcast", title, body, created_by: createdBy });
   if (error) throw error;
 }
+
+export interface AttendeeRow {
+  name: string;
+  phone: string;
+  ticket_ref: string;
+  tier_name: string;
+  event_title: string;
+  status: string;
+}
+
+export async function fetchAttendeesForEvents(eventIds: string[]): Promise<AttendeeRow[]> {
+  if (!eventIds.length) return [];
+  const { data, error } = await supabase
+    .from("tickets" as any)
+    .select("id,status,event_id,orders!inner(customer_name,customer_phone,status),ticket_tiers(name),events(title)")
+    .in("event_id", eventIds)
+    .eq("orders.status", "paid")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return ((data as any[]) ?? []).map((row) => ({
+    name: row.orders?.customer_name || "\u2014",
+    phone: row.orders?.customer_phone || "\u2014",
+    ticket_ref: row.id?.slice(0, 8) ?? "\u2014",
+    tier_name: row.ticket_tiers?.name ?? "\u2014",
+    event_title: row.events?.title ?? "\u2014",
+    status: row.status,
+  }));
+}
