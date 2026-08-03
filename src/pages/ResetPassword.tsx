@@ -48,7 +48,7 @@ const ResetPassword = () => {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Password updated");
-    nav("/dashboard");
+    nav("/my-tickets");
   };
 
   return (

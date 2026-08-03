@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import { APP_URL } from "@/lib/env";
+import { getAppOrigin } from "@/lib/env";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +24,7 @@ const ForgotPassword = () => {
 
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(ev.data, {
-      redirectTo: `${APP_URL}/reset-password`,
+      redirectTo: `${getAppOrigin()}/reset-password`,
     });
     setLoading(false);
 
