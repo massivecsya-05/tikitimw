@@ -178,6 +178,8 @@ const Auth = () => {
               <TabsContent value="signin">
                 <h2 className="font-display font-bold text-3xl mb-1">Welcome back</h2>
                 <p className="text-muted-foreground mb-6">Sign in to access your tickets</p>
+                {googleBlock}
+
                 <form onSubmit={signIn} className="space-y-4">
                   <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
                   <div>
