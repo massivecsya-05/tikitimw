@@ -32,6 +32,8 @@ import EmailVerified from "./pages/EmailVerified";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound.tsx";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
+import { RecoveryRedirect } from "@/components/RecoveryRedirect";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
