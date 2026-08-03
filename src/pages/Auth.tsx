@@ -197,6 +197,8 @@ const Auth = () => {
               <TabsContent value="signup">
                 <h2 className="font-display font-bold text-3xl mb-1">Create your account</h2>
                 <p className="text-muted-foreground mb-6">Start booking tickets today</p>
+                {googleBlock}
+
                 <form onSubmit={signUp} className="space-y-4">
                   <div><Label>Full name</Label><Input name="name" required className="h-11" /></div>
                   <div><Label>Email</Label><Input name="email" type="email" required className="h-11" /></div>
