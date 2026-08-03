@@ -91,6 +91,45 @@ const Auth = () => {
     setCheckEmailFor(ev.data);
   };
 
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setLoading(false);
+      return toast.error(result.error.message ?? "Google sign-in failed");
+    }
+    if (result.redirected) return;
+    setLoading(false);
+    toast.success("Welcome!");
+    nav(redirect);
+  };
+
+  const googleBlock = (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="w-full gap-2"
+        onClick={signInWithGoogle}
+        disabled={loading}
+      >
+        <GoogleIcon />
+        Continue with Google
+      </Button>
+      <div className="relative my-5">
+        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">or</span>
+        </div>
+      </div>
+    </>
+  );
+
+
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-hero text-primary-foreground overflow-hidden">
