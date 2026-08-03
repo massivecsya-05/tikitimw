@@ -17,9 +17,24 @@ const ResetPassword = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
+
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const search = new URLSearchParams(window.location.search);
+    const errDesc = hash.get("error_description") ?? search.get("error_description");
+    if (errDesc) toast.error(decodeURIComponent(errDesc.replace(/\+/g, " ")));
+
+    const code = search.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) toast.error(error.message);
+        else setReady(true);
+      });
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => { if (session) setReady(true); });
     return () => subscription.unsubscribe();
   }, []);
+
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,7 +48,7 @@ const ResetPassword = () => {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Password updated");
-    nav("/dashboard");
+    nav("/my-tickets");
   };
 
   return (
