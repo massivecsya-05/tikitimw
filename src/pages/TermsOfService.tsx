@@ -85,7 +85,7 @@ const TermsOfService = () => (
       <p>
         Contact the Organiser first for event-specific refund requests. For platform issues (duplicate
         charges, missing tickets after confirmed payment), email{" "}
-        <a href="mailto:support@tikitimw.com" className="text-primary hover:underline">support@tikitimw.com</a>.
+        <a href="mailto:support.tikitimw@gmail.com" className="text-primary hover:underline">support.tikitimw@gmail.com</a>.
       </p>
     </LegalSection>
 
@@ -178,11 +178,13 @@ const TermsOfService = () => (
         <a href="mailto:legal@tikitimw.com" className="text-primary hover:underline">legal@tikitimw.com</a>
       </p>
       <p>General support:{" "}
-        <a href="mailto:support@tikitimw.com" className="text-primary hover:underline">support@tikitimw.com</a>
+        <a href="mailto:support.tikitimw@gmail.com" className="text-primary hover:underline">support.tikitimw@gmail.com</a>
       </p>
     </LegalSection>
   </LegalLayout>
 );
 
 export default TermsOfService;
+
+
 

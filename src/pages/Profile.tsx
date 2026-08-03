@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -343,6 +343,11 @@ const Profile = () => {
 
           {/* Legal \u2014 the footer with these links is desktop-only, so mobile/app users need this. */}
           <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden">
+            <a href="mailto:support.tikitimw@gmail.com" className="flex items-center gap-3 p-4 min-h-12 border-b border-border/60 hover:bg-muted/40 transition-colors">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm flex-1">Contact support</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </a>
             <Link to="/terms" className="flex items-center gap-3 p-4 min-h-12 border-b border-border/60 hover:bg-muted/40 transition-colors">
               <FileText className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm flex-1">Terms of Service</span>
@@ -381,3 +386,4 @@ const Profile = () => {
 };
 
 export default Profile;
+
