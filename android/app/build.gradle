@@ -1,7 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    setProperty("archivesBaseName", "tikitimw")
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            outputFileName = "TikitiMW.apk"
+        }
+    }
     namespace = "mw.tikiti.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
@@ -53,3 +57,4 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+

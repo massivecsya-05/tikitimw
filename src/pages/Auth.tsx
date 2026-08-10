@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { APP_URL } from "@/lib/env";
 import { MailCheck } from "lucide-react";
@@ -39,6 +40,15 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [checkEmailFor, setCheckEmailFor] = useState<string | null>(null);
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (checkEmailFor && user) {
+      toast.success("Email verified! You're signed in.");
+      nav(redirect);
+    }
+  }, [checkEmailFor, user, nav, redirect]);
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -234,3 +244,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
