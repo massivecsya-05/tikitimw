@@ -81,7 +81,7 @@ const ForgotPassword = () => {
                 />
               </div>
               <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                {loading ? "Sendingâ€¦" : "Send reset link"}
+                {loading ? "Sending…" : "Send reset link"}
               </Button>
               <p className="text-sm text-center">
                 Remember your password?{" "}

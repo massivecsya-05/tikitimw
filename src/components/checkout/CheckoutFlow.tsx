@@ -201,7 +201,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                 disabled={totalQty === 0}
                 onClick={() => setStep(2)}
               >
-                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER}) Â· {formatMWK(total)}
+                Continue ({totalQty}/{MAX_TICKETS_PER_ORDER}) · {formatMWK(total)}
               </Button>
             </div>
           )}
@@ -220,7 +220,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   required
                   className="h-12 mt-1"
                   inputMode="tel"
-                  placeholder="+265â€¦"
+                  placeholder="+265…"
                 />
               </div>
               <div>
@@ -241,7 +241,7 @@ export const CheckoutFlow = ({ event, tiers, user }: CheckoutFlowProps) => {
                   Back
                 </Button>
                 <Button variant="hero" className="flex-1 min-h-12" disabled={submitting} onClick={() => goPay()}>
-                  {submitting ? "Processingâ€¦" : `Pay ${formatMWK(total)}`}
+                  {submitting ? "Processing…" : `Pay ${formatMWK(total)}`}
                 </Button>
               </div>
             </div>

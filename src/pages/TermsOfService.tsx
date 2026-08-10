@@ -20,7 +20,7 @@ const TermsOfService = () => (
       <p>
         TikitiMW connects event organisers (&quot;Organisers&quot;) with ticket buyers (&quot;Customers&quot;). We provide
         the technology to list events, sell tickets, process payments through PayChangu, issue QR tickets,
-        and check in attendees. TikitiMW is a platform â€” unless stated otherwise, we are not the organiser
+        and check in attendees. TikitiMW is a platform — unless stated otherwise, we are not the organiser
         of events listed by third parties.
       </p>
     </LegalSection>
@@ -40,7 +40,7 @@ const TermsOfService = () => (
     <LegalSection title="4. Buying tickets">
       <p>
         Ticket prices, availability, and event details are set by Organisers. We display this information
-        in good faith but do not guarantee accuracy â€” contact the Organiser if details change.
+        in good faith but do not guarantee accuracy — contact the Organiser if details change.
       </p>
       <p>
         A ticket order is confirmed only after successful payment. Pending orders may expire if payment
@@ -48,7 +48,7 @@ const TermsOfService = () => (
       </p>
       <p>
         QR tickets are personal and may be checked against the purchaser&apos;s name or phone at the gate.
-        Do not share ticket screenshots publicly â€” duplicated use may be refused.
+        Do not share ticket screenshots publicly — duplicated use may be refused.
       </p>
       <p>
         Each ticket is valid for one entry unless the Organiser states otherwise. Lost or deleted tickets
@@ -74,7 +74,7 @@ const TermsOfService = () => (
     <LegalSection title="6. Refunds and cancellations">
       <p>
         Refund policies are set by the Organiser unless required by law. TikitiMW does not automatically
-        issue refunds for cancelled events â€” Organisers are responsible for communicating cancellation terms
+        issue refunds for cancelled events — Organisers are responsible for communicating cancellation terms
         and arranging refunds where applicable.
       </p>
       <p>

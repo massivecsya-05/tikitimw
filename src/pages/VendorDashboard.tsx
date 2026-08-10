@@ -607,7 +607,7 @@ const VendorDashboard = () => {
                           {log.result.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="p-3 font-mono text-xs">{log.ticket_id?.slice(0, 8) ?? "â€”"}</td>
+                      <td className="p-3 font-mono text-xs">{log.ticket_id?.slice(0, 8) ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -701,7 +701,7 @@ const VendorDashboard = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-display font-bold truncate">{ev.title}</div>
-                        <div className="text-sm text-muted-foreground">{formatDate(ev.starts_at)} Â· {ev.venue}, {ev.city}</div>
+                        <div className="text-sm text-muted-foreground">{formatDate(ev.starts_at)} · {ev.venue}, {ev.city}</div>
                         <div className="mt-1 flex gap-3 text-xs">
                           <span className="inline-flex items-center gap-1 text-muted-foreground"><Ticket className="w-3 h-3"/> <span className="font-semibold text-foreground">{es.sold}</span> sold</span>
                           <span className="inline-flex items-center gap-1 text-muted-foreground"><DollarSign className="w-3 h-3"/> <span className="font-semibold text-foreground">{formatMWK(es.revenue)}</span></span>

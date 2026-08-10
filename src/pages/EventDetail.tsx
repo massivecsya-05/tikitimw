@@ -148,7 +148,7 @@ const EventDetail = () => {
                         <div key={tier.id} className="flex items-center justify-between text-sm">
                           <span className="truncate">{tier.name}</span>
                           <span className="text-muted-foreground">
-                            {formatMWK(tier.price_mwk)} Â· {remainingQty} left
+                            {formatMWK(tier.price_mwk)} · {remainingQty} left
                           </span>
                         </div>
                       );
