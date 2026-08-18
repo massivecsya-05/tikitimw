@@ -14,7 +14,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { APP_URL } from "@/lib/env";
 import { MailCheck } from "lucide-react";
-import { lovable } from "@/integrations/lovable/index";
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
@@ -103,17 +102,14 @@ const Auth = () => {
 
   const signInWithGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
-    if (result.error) {
+    if (error) {
       setLoading(false);
-      return toast.error(result.error.message ?? "Google sign-in failed");
+      return toast.error(error.message ?? "Google sign-in failed");
     }
-    if (result.redirected) return;
-    setLoading(false);
-    toast.success("Welcome!");
-    nav(redirect);
   };
 
   const googleBlock = (
@@ -244,4 +240,5 @@ const Auth = () => {
 };
 
 export default Auth;
+
 
