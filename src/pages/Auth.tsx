@@ -88,12 +88,17 @@ const Auth = () => {
     const ev = emailSchema.safeParse(email); if (!ev.success) return toast.error(ev.error.errors[0].message);
     const pv = passwordSchema.safeParse(password); if (!pv.success) return toast.error(pv.error.errors[0].message);
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: ev.data, password: pv.data,
         options: { emailRedirectTo: `${APP_URL}/email-verified`, data: { full_name: nv.data, phone } },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      toast.error("An account with this email already exists - please sign in.");
+      setTab("signin");
+      return;
+    }
     // Do NOT navigate into the app here \u2014 Supabase has not created a session yet
     // (email confirmation is required), so silently proceeding would either dead-end
     // or, worse, mask the fact that the email hasn't actually been verified.
@@ -240,5 +245,7 @@ const Auth = () => {
 };
 
 export default Auth;
+
+
 
 
