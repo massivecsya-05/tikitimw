@@ -437,3 +437,8 @@ export async function fetchAttendeesForEvents(eventIds: string[]): Promise<Atten
     status: row.status,
   }));
 }
+
+export async function deleteNotification(notificationId: string) {
+  const { error } = await supabase.from("notifications").delete().eq("id", notificationId);
+  if (error) throw error;
+}

@@ -18,9 +18,9 @@ function timeAgo(iso: string) {
 }
 
 const Notifications = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
   const [filter, setFilter] = useState<"all" | "tickets">("all");
-  const { data: notifications = [], unreadCount, markRead, markAllRead, isLoading } = useNotifications();
+  const { data: notifications = [], unreadCount, markRead, markAllRead, deleteNotif, isLoading } = useNotifications();
   const { data: eventNotificationsEnabled = true, update: updatePreference } = useNotificationPreference();
 
   if (loading) return null;
@@ -97,6 +97,15 @@ const Notifications = () => {
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {!n.is_read && <span className="w-2 h-2 rounded-full bg-red-500" />}
                   <span className="text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(n.created_at)}</span>
+                  {roles.includes("admin") && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); deleteNotif.mutate(n.id); }}
+                      className="text-[10px] text-destructive font-medium mt-1"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </button>
             ))
@@ -108,3 +117,6 @@ const Notifications = () => {
 };
 
 export default Notifications;
+
+
+

@@ -6,6 +6,7 @@ import {
   updateNotificationPreference,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteNotification,
 } from "@/lib/api";
 
 export function useNotifications() {
@@ -35,7 +36,11 @@ export function useNotifications() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] }),
   });
 
-  return { ...query, unreadCount, markRead, markAllRead };
+  const deleteNotif = useMutation({
+    mutationFn: (notificationId: string) => deleteNotification(notificationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] }),
+  });
+  return { ...query, unreadCount, markRead, markAllRead, deleteNotif };
 }
 
 export function useNotificationPreference() {
@@ -55,3 +60,4 @@ export function useNotificationPreference() {
 
   return { ...query, update };
 }
+
